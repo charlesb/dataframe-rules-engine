@@ -5,9 +5,7 @@ import com.databricks.labs.validation.utils.Structures.{Bounds, MinMaxRuleDef, R
 import com.databricks.labs.validation.utils.Helpers._
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.{Column, DataFrame, RelationalGroupedDataset}
-import org.apache.spark.sql.catalyst.expressions.NamedExpression
-import org.apache.spark.sql.functions
-import org.apache.spark.sql.types.MetadataBuilder
+import org.apache.spark.sql.functions.{min, max}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -17,12 +15,12 @@ class RuleSet extends SparkSessionWrapper {
 
   import spark.implicits._
 
-  private var _df: Any = _
+  private var _df: DataFrame = _
   private var _isGrouped: Boolean = _
-  private val rulesReport = ArrayBuffer[Result]()
+  private var _groupBys: Seq[String] = Seq.empty[String]
   private val _rules = ArrayBuffer[Rule]()
 
-  private def setDF(value: Any): this.type = {
+  private def setDF(value: DataFrame): this.type = {
     _df = value
     this
   }
@@ -32,9 +30,15 @@ class RuleSet extends SparkSessionWrapper {
     this
   }
 
-  private def getDf: Any = _df
-  private def getGroupedFlag: Boolean = _isGrouped
-  private def getRules: Array[Rule] = _rules.toArray
+  private def setGroupByCols(value: Seq[String]): this.type = {
+    _groupBys = value
+    this
+  }
+
+  private[validation] def getDf: DataFrame = _df
+  private[validation] def getGroupedFlag: Boolean = _isGrouped
+  private[validation] def getGroupBys: Seq[String] = _groupBys
+  def getRules: Array[Rule] = _rules.toArray
 
 
   def addMinMaxRules(ruleName: String,
@@ -43,10 +47,8 @@ class RuleSet extends SparkSessionWrapper {
                      by: Column*
                     ): this.type = {
     val rules = Array(
-      Rule(ruleName, inputColumn, functions.min, s"${getColumnName(inputColumn)}_min",
-        boundaries, by: _*),
-      Rule(ruleName, inputColumn, functions.max, s"${getColumnName(inputColumn)}_max",
-        boundaries, by: _*)
+      Rule(s"${ruleName}_min", min(inputColumn),  boundaries),
+      Rule(s"${ruleName}_max", max(inputColumn), boundaries)
     )
     add(rules)
   }
@@ -72,46 +74,55 @@ class RuleSet extends SparkSessionWrapper {
    *
    * @return this but is marked private
    */
-  private def applyValidation: this.type = {
+//  private def applyValidation: this.type = {
+//
+//    // Logic application
+//    val rules = _rules.toArray
+//    val actuals = rules.map(rule => rule.aggFunc(rule.inputColumn).cast("double").alias(rule.alias))
+//
+//    // Result after applying the logic
+//    val results = if (_isGrouped) {
+//      _df.asInstanceOf[RelationalGroupedDataset].agg(actuals.head, actuals.tail: _*).first()
+//    } else {
+//      _df.asInstanceOf[DataFrame].select(actuals: _*).first()
+//    }
+//
+//    // Test to see if results are compliant with the rules
+//    // Result is appended to the case class Result
+//    rules.foreach(rule => {
+//      val funcRaw = rule.aggFunc.apply(rule.inputColumn).toString()
+//      val funcName = funcRaw.substring(0, funcRaw.indexOf("("))
+//      val actVal = results.getDouble(results.fieldIndex(rule.alias))
+//      rulesReport.append(Result(rule.ruleName, rule.alias, funcName, rule.boundaries,
+//        actVal, actVal < rule.boundaries.upper && actVal > rule.boundaries.lower))
+//    })
+//    this
+//  }
 
-    // Logic application
-    val rules = _rules.toArray
-    val actuals = rules.map(rule => rule.aggFunc(rule.inputColumn).cast("double").alias(rule.alias))
-
-    // Result after applying the logic
-    val results = if (_isGrouped) {
-      _df.asInstanceOf[RelationalGroupedDataset].agg(actuals.head, actuals.tail: _*).first()
-    } else {
-      _df.asInstanceOf[DataFrame].select(actuals: _*).first()
-    }
-
-
-    // Test to see if results are compliant with the rules
-    // Result is appended to the case class Result
-    rules.foreach(rule => {
-      val funcRaw = rule.aggFunc.apply(rule.inputColumn).toString()
-      val funcName = funcRaw.substring(0, funcRaw.indexOf("("))
-      val actVal = results.getDouble(results.fieldIndex(rule.alias))
-      rulesReport.append(Result(rule.ruleName, rule.alias, funcName, rule.boundaries,
-        actVal, actVal < rule.boundaries.upper && actVal > rule.boundaries.lower))
-    })
-    this
-  }
+  // Can't have groupedDataset without Bys
+  // What else?
+  private def checkRules(): Unit = {
+    require(getRules.map(_.ruleName).distinct.length == getRules.map(_.ruleName).length,
+      s"Duplicate Rule Names: ${getRules.map(_.ruleName).diff(getRules.map(_.ruleName).distinct).mkString(", ")}")
+}
 
   /**
    * Call the action once all rules have been applied
    * @return Tuple of Dataframe report and final boolean of whether all rules were passed
    */
   def validate: (DataFrame, Boolean) = {
-    applyValidation
-    val reportDF = rulesReport.toDS.toDF
-    (reportDF,
-      reportDF.filter('passed === false).count > 0)
+    checkRules()
+    val validatorDF = Validator(this).validate
+//    val reportDF = rulesReport.toDS.toDF
+    (validatorDF,
+      true)
   }
 
 }
 
 object RuleSet {
+
+  private def isGrouped(by: Seq[String]): Boolean = if (by.nonEmpty) true else false
 
   /**
    * Accept either a regular DataFrame or a Grouped DataFrame as the base
@@ -122,8 +133,19 @@ object RuleSet {
     new RuleSet().setDF(df).setIsGrouped(false)
   }
 
-  def apply(df: RelationalGroupedDataset): RuleSet = {
-    new RuleSet().setDF(df).setIsGrouped(true)
+  def apply(df: DataFrame, by: Array[String]): RuleSet = {
+    new RuleSet().setDF(df).setIsGrouped(isGrouped(by))
+      .setGroupByCols(by)
+  }
+
+//  def apply(df: RelationalGroupedDataset): RuleSet = {
+//    new RuleSet().setDF(df).setIsGrouped(true)
+//  }
+
+  def apply(df: DataFrame, rules: Seq[Rule], by: Seq[String] = Seq.empty[String]): RuleSet = {
+    new RuleSet().setDF(df).setIsGrouped(isGrouped(by))
+      .setGroupByCols(by)
+      .add(rules)
   }
 
   def apply(df: DataFrame, rules: Rule*): RuleSet = {
@@ -131,19 +153,17 @@ object RuleSet {
       .add(rules)
   }
 
-  def apply(df: RelationalGroupedDataset, rules: Rule*): RuleSet = {
-    new RuleSet().setDF(df).setIsGrouped(true)
-      .add(rules)
-  }
+//  def apply(df: RelationalGroupedDataset, rules: Rule*): RuleSet = {
+//    new RuleSet().setDF(df).setIsGrouped(true)
+//      .add(rules)
+//  }
 
   def generateMinMaxRules(minMaxRuleDefs: MinMaxRuleDef*): Array[Rule] = {
 
     minMaxRuleDefs.flatMap(ruleDef => {
       Seq(
-        Rule(ruleDef.ruleName, ruleDef.column, functions.min,
-          s"${getColumnName(ruleDef.column)}_min", ruleDef.bounds, ruleDef.by: _*),
-        Rule(ruleDef.ruleName, ruleDef.column, functions.max,
-          s"${getColumnName(ruleDef.column)}_min", ruleDef.bounds, ruleDef.by: _*)
+        Rule(s"${ruleDef.ruleName}_min", min(ruleDef.column), ruleDef.bounds),
+        Rule(s"${ruleDef.ruleName}_max", max(ruleDef.column), ruleDef.bounds)
       )
     }).toArray
   }

@@ -6,7 +6,11 @@ import org.apache.spark.sql.catalyst.expressions.NamedExpression
 object Helpers {
 
   private[validation] def getColumnName(c: Column): String = {
-    c.expr.asInstanceOf[NamedExpression].name
+    try {
+      c.expr.asInstanceOf[NamedExpression].name
+    } catch {
+      case e: ClassCastException => c.expr.references.map(_.name).toArray.head
+    }
   }
 
 }
