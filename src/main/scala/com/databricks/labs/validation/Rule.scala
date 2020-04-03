@@ -1,13 +1,16 @@
 package com.databricks.labs.validation
 
-import com.databricks.labs.validation.utils.MinMaxFunc
+import java.util.UUID
 import com.databricks.labs.validation.utils.Structures.{Bounds, ValidNumerics, ValidStrings}
 import org.apache.spark.sql.Column
 
 class Rule {
 
   private var _ruleName: String = _
-  private var _column: Column = _
+  private var _canonicalCol: Column = _
+  private var _canonicalColName: String = _
+  private var _inputCol: Column = _
+  private var _inputColName: String = _
   private var _boundaries: Bounds = _
   private var _validNumerics: ValidNumerics = _
   private var _validStrings: ValidStrings = _
@@ -19,7 +22,11 @@ class Rule {
     this
   }
   private def setColumn(value: Column): this.type = {
-    _column = value
+    _inputCol = value
+    _inputColName = _inputCol.expr.toString().replace("'", "")
+    val cleanUUID = UUID.randomUUID().toString.replaceAll("-","")
+    _canonicalColName = s"${_inputColName}_$cleanUUID"
+    _canonicalCol = _inputCol.alias(_canonicalColName)
     this
   }
   private def setBoundaries(value: Bounds): this.type = {
@@ -44,7 +51,10 @@ class Rule {
   }
 
   def ruleName: String = _ruleName
-  def inputColumn: Column = _column
+  def inputColumn: Column = _inputCol
+  def inputColumnName: String = _inputColName
+  def canonicalCol: Column = _canonicalCol
+  def canonicalColName: String = _canonicalColName
   def boundaries: Bounds = _boundaries
   def validNumerics: ValidNumerics = _validNumerics
   def validStrings: ValidStrings = _validStrings
@@ -68,25 +78,19 @@ object Rule {
       .setRuleType("bounds")
   }
 
-//  def apply(
-//             ruleName: String,
-//             column: Column,
-//             aggFunc: Option[Column => Column], // TODO -- Handle aggs
-//             alias: String,
-//             validNumerics: ValidNumerics,
-//             by: Column*
-//           ): Rule = {
-//
-//    new Rule()
-//      .setRuleName(ruleName)
-//      .setColumn(column)
-//      .setAggFunc(aggFunc)
-//      .setAlias(alias)
-//      .setValidNumerics(validNumerics)
-//      .setRuleType("validNumerics")
-//      .setByCols(by)
-//  }
-//
+  def apply(
+             ruleName: String,
+             column: Column,
+             validNumerics: ValidNumerics
+           ): Rule = {
+
+    new Rule()
+      .setRuleName(ruleName)
+      .setColumn(column)
+      .setValidNumerics(validNumerics)
+      .setRuleType("validNumerics")
+  }
+
 //  def apply(
 //    ruleName: String,
 //    column: Column,

@@ -1,6 +1,6 @@
 package com.databricks.labs.validation
 
-import com.databricks.labs.validation.utils.{SparkSessionWrapper, MinMaxFunc}
+import com.databricks.labs.validation.utils.{Lookups, MinMaxFunc, SparkSessionWrapper}
 import com.databricks.labs.validation.utils.Structures._
 import org.apache.spark.sql.{Column, functions}
 import org.apache.spark.sql.functions._
@@ -34,7 +34,7 @@ object Example extends App with SparkSessionWrapper {
     Rule("Retail_Price_Validation", col("retail_price"), Bounds(0.0, 6.99))
   )
 
-  // It's common to generate many mins and max boundaries. These can be generated easily
+  // It's common to generate many min/max boundaries. These can be generated easily
   // The generator function can easily be extended or overridden to satisfy more complex requirements
   val minMaxPriceDefs = Array(
     MinMaxRuleDef("MinMax_Sku_Price", col("retail_price"), Bounds(0.0, 29.99)),
@@ -43,6 +43,12 @@ object Example extends App with SparkSessionWrapper {
   )
 
   val minMaxPriceRules = RuleSet.generateMinMaxRules(minMaxPriceDefs: _*)
+
+  val validStores = Array(
+    Rule("Valid_Stores", col("store_id"), Lookups.validStoreIDs),
+    Rule("Valid_Skus", col("sku"), Lookups.validSkus)
+  )
+
 
 
   //TODO - validate datetime
@@ -58,7 +64,7 @@ object Example extends App with SparkSessionWrapper {
     ("Northwest", 1002, 168212, 3.29, 1.99, 1.23),
     ("Northwest", 1002, 365423, 1.29, 0.99, 1.23),
     ("Northwest", 1002, 3897615, 14.99, 129.99, 1.23),
-    ("Northwest", 1003, 163212, 3.29, 1.99, 1.23)
+    ("Northwest", 1003, 163212, 3.29, 1.99, 1.23) // Invalid numeric store_id groupby test
   )).toDF("region", "store_id", "sku", "retail_price", "scan_price", "cost")
 
   // Doing the validation
@@ -67,10 +73,11 @@ object Example extends App with SparkSessionWrapper {
   val (rulesReport, passed) = RuleSet(df, Array("store_id"))
     .add(specializedRules)
     .add(minMaxPriceRules)
-    .validate
+    .add(validStores)
+    .validate()
 
   rulesReport.show(false)
-
+//  rulesReport.printSchema()
 
 
 }
