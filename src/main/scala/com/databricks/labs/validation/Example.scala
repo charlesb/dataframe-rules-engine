@@ -73,7 +73,7 @@ object Example extends App with SparkSessionWrapper {
   val (rulesReport, passed) = RuleSet(df)
     .add(specializedRules)
     .add(minMaxPriceRules)
-    .add(validStores)
+//    .add(validStores)
     .validate()
 
   rulesReport.show(false)
