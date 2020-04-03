@@ -70,13 +70,13 @@ object Example extends App with SparkSessionWrapper {
   // Doing the validation
   // The validate method will return the rules report dataframe which breaks down which rules passed and which
   // rules failed and how/why. The second return value returns a boolean to determine whether or not all tests passed
-  val (rulesReport, passed) = RuleSet(df)
+  val (rulesReport, passed) = RuleSet(df, Array("store_id"))
     .add(specializedRules)
     .add(minMaxPriceRules)
 //    .add(validStores)
     .validate()
 
-  rulesReport.show(false)
+  rulesReport.show(200, false)
 //  rulesReport.printSchema()
 
 
