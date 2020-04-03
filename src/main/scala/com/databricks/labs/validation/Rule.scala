@@ -11,6 +11,7 @@ class Rule {
   private var _canonicalColName: String = _
   private var _inputCol: Column = _
   private var _inputColName: String = _
+  private var _calculatedColumn: Column = _
   private var _boundaries: Bounds = _
   private var _validNumerics: ValidNumerics = _
   private var _validStrings: ValidStrings = _
@@ -27,7 +28,11 @@ class Rule {
     val cleanUUID = UUID.randomUUID().toString.replaceAll("-","")
     _canonicalColName = s"${_inputColName}_$cleanUUID"
     _canonicalCol = _inputCol.alias(_canonicalColName)
+    _calculatedColumn = _inputCol
     this
+  }
+  private[validation] def setCalculatedColumn(value: Column): Unit = {
+    _calculatedColumn = value
   }
   private def setBoundaries(value: Bounds): this.type = {
     _boundaries = value
@@ -55,6 +60,7 @@ class Rule {
   def inputColumnName: String = _inputColName
   def canonicalCol: Column = _canonicalCol
   def canonicalColName: String = _canonicalColName
+  private[validation] def calculatedColumn: Column = _calculatedColumn
   def boundaries: Bounds = _boundaries
   def validNumerics: ValidNumerics = _validNumerics
   def validStrings: ValidStrings = _validStrings

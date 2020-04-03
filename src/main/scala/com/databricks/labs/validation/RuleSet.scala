@@ -79,6 +79,7 @@ class RuleSet extends SparkSessionWrapper {
    */
 
   // Can't have groupedDataset without Bys
+  // Unique rule names
   // What else?
   private def validateRules(): Unit = {
     require(getRules.map(_.ruleName).distinct.length == getRules.map(_.ruleName).length,
