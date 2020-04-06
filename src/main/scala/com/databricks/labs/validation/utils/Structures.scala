@@ -1,17 +1,13 @@
 package com.databricks.labs.validation.utils
 
-import com.databricks.labs.validation.utils.Structures.{ValidNumerics, ValidStrings}
 import org.apache.spark.sql.Column
 
 object Lookups {
-  final val validStoreIDs = ValidNumerics("store_id", Array(1001, 1002))
+  final val validStoreIDs = Array(1001, 1002)
 
-  final val validStrings = ValidStrings("region",
-    Array("Northeast", "Southeast", "Midwest", "Northwest", "Southcentral", "Southwest")
-  )
+  final val validRegions = Array("Northeast", "Southeast", "Midwest", "Northwest", "Southcentral", "Southwest")
 
-  final val validSkus = ValidNumerics("sku",
-    Array(123456, 122987,123256, 173544, 163212, 365423, 168212))
+  final val validSkus = Array(123456, 122987,123256, 173544, 163212, 365423, 168212)
 
 
 //  val df = sc.parallelize(Seq(
@@ -31,11 +27,11 @@ object Structures {
 
   case class Bounds(lower: Double = Double.NegativeInfinity, upper: Double = Double.PositiveInfinity)
 
-  case class Result(ruleName: String, groupId: String, boundaries: Bounds, failedCount: Long, passed: Boolean)
+  case class RuleDefinition(ruleName: String, ruleType: String, isAgg: Boolean, bounds: Bounds, categoricals: Array[Double])
+
+  case class RuleDefinitions(ruleDefinition: Array[RuleDefinition])
+//  case class Result(ruleName: String, groupId: String, boundaries: Bounds, failedCount: Long, passed: Boolean)
 
   case class MinMaxRuleDef(ruleName: String, column: Column, bounds: Bounds, by: Column*)
-
-  case class ValidNumerics(columnName: String, valid: Array[Double])
-  case class ValidStrings(columnName: String, valid: Array[String])
 
 }

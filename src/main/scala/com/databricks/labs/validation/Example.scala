@@ -17,11 +17,11 @@ object Example extends App with SparkSessionWrapper {
    * Example of a proper UDF to simplify rules logic. Simplification UDFs should take in zero or many
    * columns and return one column
    * @param retailPrice column 1
-   * @param scanPrince column 2
+   * @param scanPrice column 2
    * @return result column of applied logic
    */
-  def getDiscountPercentage(retailPrice: Column, scanPrince: Column): Column = {
-    ((retailPrice - scanPrince) / retailPrice)
+  def getDiscountPercentage(retailPrice: Column, scanPrice: Column): Column = {
+    (retailPrice - scanPrice) / retailPrice
   }
   col("abc").expr
 
@@ -44,9 +44,13 @@ object Example extends App with SparkSessionWrapper {
 
   val minMaxPriceRules = RuleSet.generateMinMaxRules(minMaxPriceDefs: _*)
 
-  val validStores = Array(
+  val catNumerics = Array(
     Rule("Valid_Stores", col("store_id"), Lookups.validStoreIDs),
     Rule("Valid_Skus", col("sku"), Lookups.validSkus)
+  )
+
+  val catStrings = Array(
+    Rule("Valid_Regions", col("region"), Lookups.validRegions)
   )
 
 
@@ -59,6 +63,7 @@ object Example extends App with SparkSessionWrapper {
     ("Northwest", 1001, 123256, 19.99, 16.49, 12.99),
     ("Northwest", 1001, 123456, 0.99, 0.99, 0.10),
     ("Northwest", 1001, 123456, 0.98, 0.90, 0.10), // non_distinct sku
+    ("Northwst", 1001, 123456, 0.99, 0.99, 0.10), // Misspelled Region
     ("Northwest", 1002, 122987, 9.99, 9.49, 6.49),
     ("Northwest", 1002, 173544, 1.29, 0.99, 1.23),
     ("Northwest", 1002, 168212, 3.29, 1.99, 1.23),
@@ -70,10 +75,12 @@ object Example extends App with SparkSessionWrapper {
   // Doing the validation
   // The validate method will return the rules report dataframe which breaks down which rules passed and which
   // rules failed and how/why. The second return value returns a boolean to determine whether or not all tests passed
-  val (rulesReport, passed) = RuleSet(df, Array("store_id"))
+//  val (rulesReport, passed) = RuleSet(df, Array("store_id"))
+  val (rulesReport, passed) = RuleSet(df)
     .add(specializedRules)
     .add(minMaxPriceRules)
-//    .add(validStores)
+    .add(catNumerics)
+    .add(catStrings)
     .validate()
 
   rulesReport.show(200, false)

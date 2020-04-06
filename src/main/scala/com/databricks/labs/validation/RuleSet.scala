@@ -1,11 +1,11 @@
 package com.databricks.labs.validation
 
 import com.databricks.labs.validation.utils.{MinMaxFunc, SparkSessionWrapper}
-import com.databricks.labs.validation.utils.Structures.{Bounds, MinMaxRuleDef, Result}
+import com.databricks.labs.validation.utils.Structures.{Bounds, MinMaxRuleDef, RuleDefinition, RuleDefinitions}
 import com.databricks.labs.validation.utils.Helpers._
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.{Column, DataFrame, RelationalGroupedDataset}
-import org.apache.spark.sql.functions.{min, max}
+import org.apache.spark.sql.functions.{max, min}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -71,6 +71,22 @@ class RuleSet extends SparkSessionWrapper {
       .setIsGrouped(ruleSet.getGroupedFlag)
       .add(ruleSet.getRules)
   }
+
+//  val ruleExample = RuleDefinition("testRule", "bounds", false, Bounds(0.02, 100.0), null)
+//  val ruleExample2 = RuleDefinition("testRule", "bounds", false, null, Array(100.2, 100.5, 200.3))
+//  val rules = RuleDefinitions(Array(ruleExample, ruleExample2))
+//  // val rules2 = RuleDefinitions(ruleExample2)
+//  val rulesDF = sc.parallelize(Seq(rules)).toDS.toDF
+//
+//  val dfWRules = df.crossJoin(rulesDF)
+
+//  def appendRulesToDF(): Unit = {
+//    val ruleDefinitions = _rules.map(rule => {
+//      RuleDefinition(rule.ruleName, rule.ruleType, rule.isAgg, rule.boundaries, rule.validNumerics)
+//    })
+//    val ruleDefsDF = sc.parallelize(ruleDefinitions).toDS.toDF
+//    _df = getDf.crossJoin(ruleDefsDF)
+//  }
 
   /**
    * Logic to actually test compliance with provided rules added through the builder
