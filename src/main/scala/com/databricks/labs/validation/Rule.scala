@@ -165,14 +165,15 @@ object Rule {
       .setRuleType("validStrings")
       .setIsAgg
   }
+  // TODO -- Implement Date/Time Logic for:
+  //     Column Type (i.e. current_timestamp and current_date)
+  //     java.util.Date
+  //     Validated strings compatible with Spark
 
   //  def apply(
   //             ruleName: String,
   //             column: Column,
-  //             aggFunc: Option[Column => Column], // TODO - handle aggs
-  //             alias: String,
-  //             dateTimeLogic: Column,
-  //             by: Column*
+  //             dateTimeLogic: ???,
   //           ): Rule = {
   //
   //    new Rule()

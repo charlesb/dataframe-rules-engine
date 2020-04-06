@@ -72,54 +72,25 @@ class RuleSet extends SparkSessionWrapper {
       .add(ruleSet.getRules)
   }
 
-//  val ruleExample = RuleDefinition("testRule", "bounds", false, Bounds(0.02, 100.0), null)
-//  val ruleExample2 = RuleDefinition("testRule", "bounds", false, null, Array(100.2, 100.5, 200.3))
-//  val rules = RuleDefinitions(Array(ruleExample, ruleExample2))
-//  // val rules2 = RuleDefinitions(ruleExample2)
-//  val rulesDF = sc.parallelize(Seq(rules)).toDS.toDF
-//
-//  val dfWRules = df.crossJoin(rulesDF)
-
-//  def appendRulesToDF(): Unit = {
-//    val ruleDefinitions = _rules.map(rule => {
-//      RuleDefinition(rule.ruleName, rule.ruleType, rule.isAgg, rule.boundaries, rule.validNumerics)
-//    })
-//    val ruleDefsDF = sc.parallelize(ruleDefinitions).toDS.toDF
-//    _df = getDf.crossJoin(ruleDefsDF)
-//  }
-
   /**
-   * Logic to actually test compliance with provided rules added through the builder
-   *
+   * Logic to test compliance with provided rules added through the builder
+   * TODO What's missed
    * @return this but is marked private
    */
-
-  // Can't have groupedDataset without Bys
-  // Unique rule names
-  // What else?
   private def validateRules(): Unit = {
     require(getRules.map(_.ruleName).distinct.length == getRules.map(_.ruleName).length,
       s"Duplicate Rule Names: ${getRules.map(_.ruleName).diff(getRules.map(_.ruleName).distinct).mkString(", ")}")
   }
 
-//  private def appendCanonicalCols(): Unit = {
-//    _df = _rules.foldLeft(_df) {
-//      case (df, rule) =>
-//        val x = rule.canonicalColName
-//        val y = rule.inputColumn
-//        val z = rule.canonicalCol
-//        df.withColumn(rule.canonicalColName, rule.inputColumn)
-//    }
-//  }
-
   /**
    * Call the action once all rules have been applied
-   *
+   * @param detailLevel -- For Future -- Perhaps faster way to just return true/false without
+   *                    processing everything and returning a report. For big data sets, perhaps run samples
+   *                    looking for invalids? Not sure how much faster and/or what the break-even would be
    * @return Tuple of Dataframe report and final boolean of whether all rules were passed
    */
   def validate(detailLevel: Int = 1): (DataFrame, Boolean) = {
     validateRules()
-//    appendCanonicalCols()
     val validatorDF = Validator(this, detailLevel).validate
     //    val reportDF = rulesReport.toDS.toDF
     (validatorDF,
@@ -146,10 +117,6 @@ object RuleSet {
       .setGroupByCols(by)
   }
 
-  //  def apply(df: RelationalGroupedDataset): RuleSet = {
-  //    new RuleSet().setDF(df).setIsGrouped(true)
-  //  }
-
   def apply(df: DataFrame, rules: Seq[Rule], by: Seq[String] = Seq.empty[String]): RuleSet = {
     new RuleSet().setDF(df).setIsGrouped(isGrouped(by))
       .setGroupByCols(by)
@@ -160,11 +127,6 @@ object RuleSet {
     new RuleSet().setDF(df).setIsGrouped(false)
       .add(rules)
   }
-
-  //  def apply(df: RelationalGroupedDataset, rules: Rule*): RuleSet = {
-  //    new RuleSet().setDF(df).setIsGrouped(true)
-  //      .add(rules)
-  //  }
 
   def generateMinMaxRules(minMaxRuleDefs: MinMaxRuleDef*): Array[Rule] = {
 

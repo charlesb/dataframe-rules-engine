@@ -23,7 +23,6 @@ object Example extends App with SparkSessionWrapper {
   def getDiscountPercentage(retailPrice: Column, scanPrice: Column): Column = {
     (retailPrice - scanPrice) / retailPrice
   }
-  col("abc").expr
 
   // Example of creating array of custom rules
   val specializedRules = Array(
@@ -31,7 +30,8 @@ object Example extends App with SparkSessionWrapper {
     Rule("Max_allowed_discount",
       max(getDiscountPercentage(col("retail_price"), col("scan_price"))),
       Bounds(upper = 90.0)),
-    Rule("Retail_Price_Validation", col("retail_price"), Bounds(0.0, 6.99))
+    Rule("Retail_Price_Validation", col("retail_price"), Bounds(0.0, 6.99)),
+    Rule("Unique_Skus", countDistinct("sku"), Bounds(upper = 1.0))
   )
 
   // It's common to generate many min/max boundaries. These can be generated easily
@@ -53,30 +53,30 @@ object Example extends App with SparkSessionWrapper {
     Rule("Valid_Regions", col("region"), Lookups.validRegions)
   )
 
-
-
   //TODO - validate datetime
   // TODO - validate distinct keys
   // Test, example data frame
   val df = sc.parallelize(Seq(
-    ("Northwest", 1001, 123456, 9.32, 8.99, 4.23),
-    ("Northwest", 1001, 123256, 19.99, 16.49, 12.99),
-    ("Northwest", 1001, 123456, 0.99, 0.99, 0.10),
-    ("Northwest", 1001, 123456, 0.98, 0.90, 0.10), // non_distinct sku
-    ("Northwst", 1001, 123456, 0.99, 0.99, 0.10), // Misspelled Region
-    ("Northwest", 1002, 122987, 9.99, 9.49, 6.49),
-    ("Northwest", 1002, 173544, 1.29, 0.99, 1.23),
-    ("Northwest", 1002, 168212, 3.29, 1.99, 1.23),
-    ("Northwest", 1002, 365423, 1.29, 0.99, 1.23),
-    ("Northwest", 1002, 3897615, 14.99, 129.99, 1.23),
-    ("Northwest", 1003, 163212, 3.29, 1.99, 1.23) // Invalid numeric store_id groupby test
-  )).toDF("region", "store_id", "sku", "retail_price", "scan_price", "cost")
+    ("Northwest", 1001, 123456, 9.32, 8.99, 4.23, "2020-02-01  00:00:00.000"),
+    ("Northwest", 1001, 123256, 19.99, 16.49, 12.99, "2020-02-01"),
+    ("Northwest", 1001, 123456, 0.99, 0.99, 0.10, "2020-02-01"),
+    ("Northwest", 1001, 123456, 0.98, 0.90, 0.10, "2020-02-01"), // non_distinct sku
+    ("Northwst", 1001, 123456, 0.99, 0.99, 0.10, "2020-02-01"), // Misspelled Region
+    ("Northwest", 1002, 122987, 9.99, 9.49, 6.49, "2021-02-01"), // Invalid Date/Timestamp
+    ("Northwest", 1002, 173544, 1.29, 0.99, 1.23, "2020-02-01"),
+    ("Northwest", 1002, 168212, 3.29, 1.99, 1.23, "2020-02-01"),
+    ("Northwest", 1002, 365423, 1.29, 0.99, 1.23, "2020-02-01"),
+    ("Northwest", 1002, 3897615, 14.99, 129.99, 1.23, "2020-02-01"),
+    ("Northwest", 1003, 163212, 3.29, 1.99, 1.23, "2020-02-01") // Invalid numeric store_id groupby test
+  )).toDF("region", "store_id", "sku", "retail_price", "scan_price", "cost", "create_ts")
+    .withColumn("create_ts", 'create_ts.cast("timestamp"))
+    .withColumn("create_dt", 'create_ts.cast("date"))
 
   // Doing the validation
   // The validate method will return the rules report dataframe which breaks down which rules passed and which
   // rules failed and how/why. The second return value returns a boolean to determine whether or not all tests passed
-//  val (rulesReport, passed) = RuleSet(df, Array("store_id"))
-  val (rulesReport, passed) = RuleSet(df)
+  val (rulesReport, passed) = RuleSet(df, Array("store_id"))
+//  val (rulesReport, passed) = RuleSet(df)
     .add(specializedRules)
     .add(minMaxPriceRules)
     .add(catNumerics)
