@@ -16,7 +16,7 @@ class RuleSet extends SparkSessionWrapper {
   import spark.implicits._
 
   private var _df: DataFrame = _
-  private var _isGrouped: Boolean = _
+  private var _isGrouped: Boolean = false
   private var _groupBys: Seq[String] = Seq.empty[String]
   private val _rules = ArrayBuffer[Rule]()
 
@@ -32,12 +32,13 @@ class RuleSet extends SparkSessionWrapper {
 
   private def setGroupByCols(value: Seq[String]): this.type = {
     _groupBys = value
+    _isGrouped = true
     this
   }
 
   private[validation] def getDf: DataFrame = _df
 
-  private[validation] def getGroupedFlag: Boolean = _isGrouped
+  private[validation] def isGrouped: Boolean = _isGrouped
 
   private[validation] def getGroupBys: Seq[String] = _groupBys
 
@@ -68,7 +69,7 @@ class RuleSet extends SparkSessionWrapper {
 
   def add(ruleSet: RuleSet): RuleSet = {
     new RuleSet().setDF(ruleSet.getDf)
-      .setIsGrouped(ruleSet.getGroupedFlag)
+      .setIsGrouped(ruleSet.isGrouped)
       .add(ruleSet.getRules)
   }
 
@@ -109,22 +110,22 @@ object RuleSet {
    */
 
   def apply(df: DataFrame): RuleSet = {
-    new RuleSet().setDF(df).setIsGrouped(false)
+    new RuleSet().setDF(df)
   }
 
   def apply(df: DataFrame, by: Array[String]): RuleSet = {
-    new RuleSet().setDF(df).setIsGrouped(isGrouped(by))
+    new RuleSet().setDF(df)
       .setGroupByCols(by)
   }
 
   def apply(df: DataFrame, rules: Seq[Rule], by: Seq[String] = Seq.empty[String]): RuleSet = {
-    new RuleSet().setDF(df).setIsGrouped(isGrouped(by))
+    new RuleSet().setDF(df)
       .setGroupByCols(by)
       .add(rules)
   }
 
   def apply(df: DataFrame, rules: Rule*): RuleSet = {
-    new RuleSet().setDF(df).setIsGrouped(false)
+    new RuleSet().setDF(df)
       .add(rules)
   }
 

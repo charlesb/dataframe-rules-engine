@@ -3,8 +3,10 @@ package com.databricks.labs.validation
 import com.databricks.labs.validation.utils.SparkSessionWrapper
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.{Column, DataFrame, RelationalGroupedDataset, Row}
-import org.apache.spark.sql.functions.{array, col, collect_list, collect_set,
-  explode, expr, lit, struct, sum, when, count}
+import org.apache.spark.sql.functions.{
+  array, col, collect_list, collect_set,
+  explode, expr, lit, struct, sum, when, count
+}
 import org.apache.spark.sql.types._
 import utils.Helpers._
 
@@ -32,7 +34,7 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
       "validDate" -> lit(null).cast(LongType).alias("validDate")
     )
     rule.ruleType match {
-      case "bounds" =>  nulls("bounds") = array(lit(rule.boundaries.lower), lit(rule.boundaries.upper)).alias("bounds")
+      case "bounds" => nulls("bounds") = array(lit(rule.boundaries.lower), lit(rule.boundaries.upper)).alias("bounds")
       case "validNumerics" => nulls("validNumerics") = lit(rule.validNumerics).alias("validNumerics")
       case "validStrings" => nulls("validStrings") = lit(rule.validStrings).alias("validStrings")
     }
@@ -43,12 +45,12 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
   }
 
   private def buildOutputStruct(rule: Rule, results: Seq[Column]): Column = {
-      struct(
-        lit(rule.ruleName).alias("Rule_Name"),
-        lit(rule.ruleType).alias("Rule_Type"),
-        buildValidationsByType(rule),
-        struct(results: _*).alias("Results")
-      ).alias("Validation")
+    struct(
+      lit(rule.ruleName).alias("Rule_Name"),
+      lit(rule.ruleType).alias("Rule_Type"),
+      buildValidationsByType(rule),
+      struct(results: _*).alias("Results")
+    ).alias("Validation")
   }
 
   private def simplifyReport(df: DataFrame): DataFrame = {
@@ -68,9 +70,48 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
     }
   }
 
-  private def buildBaseSelects(rules: Array[Rule]): Array[Selects] = {
-    // Build base selects
+  /**
+   * TODO - This function should identify the results of the aggregate functions and update
+   * TODO - the input column to be a lit of the calculated aggreate and thus - the rule will no longer
+   * TODO - be an aggregate and can be compared to pro
+   * TODO - Only when detailLVL is >= 2 as it will add a complete action
+   *
+   * @return
+   */
+  private def deriveAggValues(rules: Array[Rule]): Unit = {
+    val scopedRules = rules.filter(rule => rule.isAgg && rule.ruleType == "bounds")
+    if (!scopedRules.isEmpty) {
+      val aggsSelects = scopedRules.map(rule => {
+        if (!ruleSet.isGrouped) { // grouped
+          val first = rule.inputColumn.cast(DoubleType).alias(rule.ruleName)
+          val result = struct(
+            lit(rule.ruleName).alias("Rule_Name"),
+            col(rule.ruleName).alias("agg_val")
+          )
+          Selects(result, first)
+        } else { // Not Grouped TODO -- Implement
+          rule.inputColumn.alias(rule.ruleName) //TMP HOLD
+          Selects(lit("1"), lit(2))
+        }
+      })
+      
+      val processedDF = ruleSet.getDf
+        .select(aggsSelects.map(_.select.head): _*)
+        .select(explode(array(aggsSelects.map(_.output): _*)).alias("agg_vals"))
+        .select(col("agg_vals.Rule_Name"), col("agg_vals.agg_val"))
+      val aggColVals = processedDF.rdd.map(row => (row.getString(0), row.getDouble(1))).collectAsMap()
+      scopedRules.foreach(rule => {
+        rule.setColumn(lit(aggColVals(rule.ruleName)).alias(rule.ruleName))
+        rule.setIsAgg
+      })
+    }
+  }
 
+  private def buildBaseSelects(rules: Array[Rule]): Array[Selects] = {
+
+    if (detailLvl > 1) deriveAggValues(rules)
+
+    // Build base selects
     rules.map(rule => {
 
       // Results must have Invalid_Count & Failed
@@ -125,7 +166,7 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
 
   private[validation] def validate: DataFrame = {
 
-//    val selects = buildBaseSelects(boundaryRules)
+    //    val selects = buildBaseSelects(boundaryRules)
     val selects = buildBaseSelects(boundaryRules) ++ buildBaseSelects(categoricalRules)
     val fullOutput = explode(array(selects.map(_.output): _*)).alias("Validations")
     val summaryDF = if (ruleSet.getGroupBys.isEmpty) {
@@ -139,7 +180,7 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
         .select(byCols :+ fullOutput: _*)
     }
     simplifyReport(summaryDF)
-//    summaryDF
+    //    summaryDF
   }
 
 }

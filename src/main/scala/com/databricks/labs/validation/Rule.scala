@@ -24,7 +24,7 @@ class Rule {
     this
   }
 
-  private def setColumn(value: Column): this.type = {
+  private[validation] def setColumn(value: Column): this.type = {
     _inputCol = value
     _inputColName = _inputCol.expr.toString().replace("'", "")
     val cleanUUID = UUID.randomUUID().toString.replaceAll("-", "")
@@ -63,7 +63,7 @@ class Rule {
     this
   }
 
-  private def setIsAgg: this.type = {
+  private[validation] def setIsAgg: this.type = {
     _isAgg = inputColumn.expr.prettyName == "aggregateexpression"
     this
   }
