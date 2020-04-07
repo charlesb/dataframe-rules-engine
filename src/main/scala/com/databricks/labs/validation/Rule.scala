@@ -1,8 +1,10 @@
 package com.databricks.labs.validation
 
 import java.util.UUID
+
 import com.databricks.labs.validation.utils.Structures.Bounds
 import org.apache.spark.sql.Column
+import scala.collection.Map
 
 class Rule {
 
@@ -12,6 +14,7 @@ class Rule {
   private var _inputCol: Column = _
   private var _inputColName: String = _
   private var _calculatedColumn: Column = _
+  private var _valByGroup: Map[String, Column] = _
   private var _boundaries: Bounds = _
   private var _validNumerics: Array[Double] = _
   private var _validStrings: Array[String] = _
@@ -43,6 +46,11 @@ class Rule {
     this
   }
 
+  private[validation] def setValByGroup(value: Map[String, Column]): this.type = {
+    _valByGroup = value
+    this
+  }
+
   private def setValidNumerics(value: Array[Double]): this.type = {
     _validNumerics = value
     this
@@ -68,6 +76,11 @@ class Rule {
     this
   }
 
+  private[validation] def setIsAgg(value: Boolean): this.type = {
+    _isAgg = value
+    this
+  }
+
   def ruleName: String = _ruleName
 
   def inputColumn: Column = _inputCol
@@ -82,6 +95,8 @@ class Rule {
 
   def boundaries: Bounds = _boundaries
 
+  private[validation] def valByGroup: Map[String, Column] = _valByGroup
+
   def validNumerics: Array[Double] = _validNumerics
 
   def validStrings: Array[String] = _validStrings
@@ -90,7 +105,7 @@ class Rule {
 
   def ruleType: String = _ruleType
 
-  def isAgg: Boolean = _isAgg
+  private[validation] def isAgg: Boolean = _isAgg
 
 }
 

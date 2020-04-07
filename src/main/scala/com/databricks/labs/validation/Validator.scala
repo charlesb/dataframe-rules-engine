@@ -5,7 +5,7 @@ import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.{Column, DataFrame, RelationalGroupedDataset, Row}
 import org.apache.spark.sql.functions.{
   array, col, collect_list, collect_set,
-  explode, expr, lit, struct, sum, when, count
+  explode, expr, lit, struct, sum, when, count, concat
 }
 import org.apache.spark.sql.types._
 import utils.Helpers._
@@ -78,32 +78,45 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
    *
    * @return
    */
-  private def deriveAggValues(rules: Array[Rule]): Unit = {
-    val scopedRules = rules.filter(rule => rule.isAgg && rule.ruleType == "bounds")
-    if (!scopedRules.isEmpty) {
-      val aggsSelects = scopedRules.map(rule => {
-        if (!ruleSet.isGrouped) { // grouped
-          val first = rule.inputColumn.cast(DoubleType).alias(rule.ruleName)
-          val result = struct(
-            lit(rule.ruleName).alias("Rule_Name"),
-            col(rule.ruleName).alias("agg_val")
-          )
-          Selects(result, first)
-        } else { // Not Grouped TODO -- Implement
-          rule.inputColumn.alias(rule.ruleName) //TMP HOLD
-          Selects(lit("1"), lit(2))
-        }
-      })
-      
-      val processedDF = ruleSet.getDf
-        .select(aggsSelects.map(_.select.head): _*)
-        .select(explode(array(aggsSelects.map(_.output): _*)).alias("agg_vals"))
-        .select(col("agg_vals.Rule_Name"), col("agg_vals.agg_val"))
-      val aggColVals = processedDF.rdd.map(row => (row.getString(0), row.getDouble(1))).collectAsMap()
-      scopedRules.foreach(rule => {
-        rule.setColumn(lit(aggColVals(rule.ruleName)).alias(rule.ruleName))
-        rule.setIsAgg
-      })
+//  private def deriveAggValues(rules: Array[Rule]): Unit = {
+//    val scopedRules = rules.filter(rule => rule.isAgg && rule.ruleType == "bounds")
+//    if (!scopedRules.isEmpty) {
+//      val aggsSelects = scopedRules.map(rule => {
+//        val first = rule.inputColumn.cast(DoubleType).alias(rule.ruleName)
+//        val result = struct(
+//          lit(rule.ruleName).alias("Rule_Name"),
+//          col(rule.ruleName).alias("agg_val")
+//        )
+//        Selects(result, first)
+//      })
+//
+//      if (!ruleSet.isGrouped) {
+//        val processedDF = ruleSet.getDf
+//          .select(aggsSelects.map(_.select.head): _*)
+//          .select(explode(array(aggsSelects.map(_.output): _*)).alias("agg_vals"))
+//          .select(col("agg_vals.Rule_Name"), col("agg_vals.agg_val"))
+//
+//        val aggColVals = processedDF.rdd.map(row => (row.getString(0), row.getDouble(1))).collectAsMap()
+//        scopedRules.foreach(rule => {
+//          rule.setColumn(lit(aggColVals(rule.ruleName)).alias(rule.ruleName))
+//          rule.setIsAgg
+//        })
+//      } else {
+//        val processedDF = ruleSet.getDf
+//          .groupBy(byCols: _*)
+//          .agg(aggsSelects.map(_.select.head).head, aggsSelects.map(_.select.head).tail: _*)
+//          .select(byCols :+ explode(array(aggsSelects.map(_.output): _*)).alias("agg_vals"): _*)
+//          .select(concat(byCols: _*), col("agg_vals.Rule_Name"), col("agg_vals.agg_val"))
+//        // Rule_Name -> (Group, AggValByGroup)
+//        val aggColVals = processedDF.rdd.map(row => (row.getString(1), (row.getString(0), row.getDouble(2)))).collectAsMap()
+//        scopedRules.foreach(rule => {
+//          val aggValByCol = aggColVals.flatMap(aggValsByCol =>
+//            Map(aggColVals(rule.ruleName)._1 -> lit(aggColVals(rule.ruleName)._2)))
+//          rule.setValByGroup(aggValByCol)
+//          rule.setIsAgg(false)
+//        })
+      }
+
     }
   }
 
@@ -145,8 +158,8 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
           val first = collect_set(rule.inputColumn).alias(rule.ruleName)
           val results = Seq(invalid.cast(LongType).alias("Invalid_Count"), failed)
           Selects(buildOutputStruct(rule, results), first)
-        case "validDate" => ???
-        case "complex" => ???
+        case "validDate" => ??? // TODO
+        case "complex" => ??? // TODO
       }
     })
   }
