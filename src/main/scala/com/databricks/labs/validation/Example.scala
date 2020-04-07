@@ -1,8 +1,8 @@
 package com.databricks.labs.validation
 
-import com.databricks.labs.validation.utils.{Lookups, MinMaxFunc, SparkSessionWrapper}
+import com.databricks.labs.validation.utils.{Lookups, SparkSessionWrapper}
 import com.databricks.labs.validation.utils.Structures._
-import org.apache.spark.sql.{Column, functions}
+import org.apache.spark.sql.Column
 import org.apache.spark.sql.functions._
 
 object Example extends App with SparkSessionWrapper {
@@ -43,6 +43,10 @@ object Example extends App with SparkSessionWrapper {
   )
 
   val minMaxPriceRules = RuleSet.generateMinMaxRules(minMaxPriceDefs: _*)
+  val someRuleSet = RuleSet(df)
+  someRuleSet.addMinMaxRules(minMaxPriceDefs: _*)
+  someRuleSet.addMinMaxRules("Retail_Price_Validation", col("retail_price"), Bounds(0.0, 6.99))
+
 
   val catNumerics = Array(
     Rule("Valid_Stores", col("store_id"), Lookups.validStoreIDs),
@@ -54,10 +58,9 @@ object Example extends App with SparkSessionWrapper {
   )
 
   //TODO - validate datetime
-  // TODO - validate distinct keys
   // Test, example data frame
   val df = sc.parallelize(Seq(
-    ("Northwest", 1001, 123456, 9.32, 8.99, 4.23, "2020-02-01  00:00:00.000"),
+    ("Northwest", 1001, 123456, 9.32, 8.99, 4.23, "2020-02-01 00:00:00.000"),
     ("Northwest", 1001, 123256, 19.99, 16.49, 12.99, "2020-02-01"),
     ("Northwest", 1001, 123456, 0.99, 0.99, 0.10, "2020-02-01"),
     ("Northwest", 1001, 123456, 0.98, 0.90, 0.10, "2020-02-01"), // non_distinct sku

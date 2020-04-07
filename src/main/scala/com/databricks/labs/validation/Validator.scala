@@ -1,16 +1,12 @@
 package com.databricks.labs.validation
 
 import com.databricks.labs.validation.utils.SparkSessionWrapper
-import org.apache.spark.sql.expressions.Window
-import org.apache.spark.sql.{Column, DataFrame, RelationalGroupedDataset, Row}
+import org.apache.spark.sql.{Column, DataFrame}
 import org.apache.spark.sql.functions.{
-  array, col, collect_list, collect_set,
-  explode, expr, lit, struct, sum, when, count, concat
+  array, col, collect_set,
+  explode, expr, lit, struct, sum, when
 }
 import org.apache.spark.sql.types._
-import utils.Helpers._
-
-import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable
 
 class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
@@ -24,8 +20,20 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
   private val complexRules = ruleSet.getRules.filter(_.ruleType == "complex")
   private val byCols = ruleSet.getGroupBys map col
 
+  /**
+   * Method for simplifying complex select statements that end up with an output
+   * One or more select statements can be used for more complex, lengthy select sequences
+   * @param output
+   * @param select
+   */
   case class Selects(output: Column, select: Column*)
 
+  /**
+   * Builds struct for validations by type
+   * Initialize all structs to null and populate for the rule
+   * @param rule Specific rule
+   * @return struct of validation values containing the input validation values for the rule
+   */
   private def buildValidationsByType(rule: Rule): Column = {
     val nulls = mutable.Map[String, Column](
       "bounds" -> lit(null).cast(ArrayType(DoubleType)).alias("bounds"),
@@ -44,6 +52,12 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
     ).alias("Validation_Values")
   }
 
+  /**
+   * Build the struct for the rule and the results
+   * @param rule specific rule for struct to compile
+   * @param results result of pass/fail and/or counts of failures
+   * @return
+   */
   private def buildOutputStruct(rule: Rule, results: Seq[Column]): Column = {
     struct(
       lit(rule.ruleName).alias("Rule_Name"),
@@ -53,6 +67,11 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
     ).alias("Validation")
   }
 
+  /**
+   * Create output from struct for simplified results report
+   * @param df array of structs with results by Rule
+   * @return
+   */
   private def simplifyReport(df: DataFrame): DataFrame = {
     val summaryCols = Seq(
       col("Validations.Rule_Name"),
@@ -71,58 +90,11 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
   }
 
   /**
-   * TODO - This function should identify the results of the aggregate functions and update
-   * TODO - the input column to be a lit of the calculated aggreate and thus - the rule will no longer
-   * TODO - be an aggregate and can be compared to pro
-   * TODO - Only when detailLVL is >= 2 as it will add a complete action
-   *
+   * Primary logic to calculate the threshold logic and build the select structs for output summary
+   * @param rules input for rules within scope
    * @return
    */
-//  private def deriveAggValues(rules: Array[Rule]): Unit = {
-//    val scopedRules = rules.filter(rule => rule.isAgg && rule.ruleType == "bounds")
-//    if (!scopedRules.isEmpty) {
-//      val aggsSelects = scopedRules.map(rule => {
-//        val first = rule.inputColumn.cast(DoubleType).alias(rule.ruleName)
-//        val result = struct(
-//          lit(rule.ruleName).alias("Rule_Name"),
-//          col(rule.ruleName).alias("agg_val")
-//        )
-//        Selects(result, first)
-//      })
-//
-//      if (!ruleSet.isGrouped) {
-//        val processedDF = ruleSet.getDf
-//          .select(aggsSelects.map(_.select.head): _*)
-//          .select(explode(array(aggsSelects.map(_.output): _*)).alias("agg_vals"))
-//          .select(col("agg_vals.Rule_Name"), col("agg_vals.agg_val"))
-//
-//        val aggColVals = processedDF.rdd.map(row => (row.getString(0), row.getDouble(1))).collectAsMap()
-//        scopedRules.foreach(rule => {
-//          rule.setColumn(lit(aggColVals(rule.ruleName)).alias(rule.ruleName))
-//          rule.setIsAgg
-//        })
-//      } else {
-//        val processedDF = ruleSet.getDf
-//          .groupBy(byCols: _*)
-//          .agg(aggsSelects.map(_.select.head).head, aggsSelects.map(_.select.head).tail: _*)
-//          .select(byCols :+ explode(array(aggsSelects.map(_.output): _*)).alias("agg_vals"): _*)
-//          .select(concat(byCols: _*), col("agg_vals.Rule_Name"), col("agg_vals.agg_val"))
-//        // Rule_Name -> (Group, AggValByGroup)
-//        val aggColVals = processedDF.rdd.map(row => (row.getString(1), (row.getString(0), row.getDouble(2)))).collectAsMap()
-//        scopedRules.foreach(rule => {
-//          val aggValByCol = aggColVals.flatMap(aggValsByCol =>
-//            Map(aggColVals(rule.ruleName)._1 -> lit(aggColVals(rule.ruleName)._2)))
-//          rule.setValByGroup(aggValByCol)
-//          rule.setIsAgg(false)
-//        })
-      }
-
-    }
-  }
-
   private def buildBaseSelects(rules: Array[Rule]): Array[Selects] = {
-
-    if (detailLvl > 1) deriveAggValues(rules)
 
     // Build base selects
     rules.map(rule => {
@@ -140,7 +112,7 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
             rule.inputColumn.alias(rule.ruleName)
           }
           val results = if (rule.isAgg) {
-            Seq(lit(null).cast(LongType).alias("Invalid_Count"), failed)
+            Seq(when(failed, 1).otherwise(0).cast(LongType).alias("Invalid_Count"), failed)
           } else {
             Seq(col(rule.ruleName).cast(LongType).alias("Invalid_Count"), failed)
           }
@@ -177,7 +149,7 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
    */
   private def validateComplexRules: Unit = ???
 
-  private[validation] def validate: DataFrame = {
+  private[validation] def validate: (DataFrame, Boolean) = {
 
     //    val selects = buildBaseSelects(boundaryRules)
     val selects = buildBaseSelects(boundaryRules) ++ buildBaseSelects(categoricalRules)
@@ -192,8 +164,10 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
         .agg(selects.map(_.select.head).head, selects.map(_.select.head).tail: _*)
         .select(byCols :+ fullOutput: _*)
     }
-    simplifyReport(summaryDF)
-    //    summaryDF
+
+    val validationSummaryDF = simplifyReport(summaryDF)
+    val passed = validationSummaryDF.filter('Failed === true).count == 0
+    (validationSummaryDF, passed)
   }
 
 }

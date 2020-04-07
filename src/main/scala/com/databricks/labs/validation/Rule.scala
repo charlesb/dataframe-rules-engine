@@ -4,8 +4,10 @@ import java.util.UUID
 
 import com.databricks.labs.validation.utils.Structures.Bounds
 import org.apache.spark.sql.Column
-import scala.collection.Map
 
+/**
+ * Definition of a rule
+ */
 class Rule {
 
   private var _ruleName: String = _
@@ -14,7 +16,6 @@ class Rule {
   private var _inputCol: Column = _
   private var _inputColName: String = _
   private var _calculatedColumn: Column = _
-  private var _valByGroup: Map[String, Column] = _
   private var _boundaries: Bounds = _
   private var _validNumerics: Array[Double] = _
   private var _validStrings: Array[String] = _
@@ -27,6 +28,13 @@ class Rule {
     this
   }
 
+  /**
+   * Allows for use of canonical naming and rule identification. Not necessary as of version 0.1 but
+   * can be used for future use cases
+   *
+   * @param value input column from user
+   * @return Rule
+   */
   private[validation] def setColumn(value: Column): this.type = {
     _inputCol = value
     _inputColName = _inputCol.expr.toString().replace("'", "")
@@ -43,11 +51,6 @@ class Rule {
 
   private def setBoundaries(value: Bounds): this.type = {
     _boundaries = value
-    this
-  }
-
-  private[validation] def setValByGroup(value: Map[String, Column]): this.type = {
-    _valByGroup = value
     this
   }
 
@@ -76,11 +79,6 @@ class Rule {
     this
   }
 
-  private[validation] def setIsAgg(value: Boolean): this.type = {
-    _isAgg = value
-    this
-  }
-
   def ruleName: String = _ruleName
 
   def inputColumn: Column = _inputCol
@@ -95,8 +93,6 @@ class Rule {
 
   def boundaries: Bounds = _boundaries
 
-  private[validation] def valByGroup: Map[String, Column] = _valByGroup
-
   def validNumerics: Array[Double] = _validNumerics
 
   def validStrings: Array[String] = _validStrings
@@ -110,6 +106,10 @@ class Rule {
 }
 
 object Rule {
+
+  /**
+   * Several apply methods have been created to handle various types of rules and instantiations from the user
+   */
 
   def apply(
              ruleName: String,
@@ -180,10 +180,15 @@ object Rule {
       .setRuleType("validStrings")
       .setIsAgg
   }
-  // TODO -- Implement Date/Time Logic for:
-  //     Column Type (i.e. current_timestamp and current_date)
-  //     java.util.Date
-  //     Validated strings compatible with Spark
+
+  /**
+   * TODO -- Implement Date/Time Logic for:
+   * Column Type (i.e. current_timestamp and current_date)
+   * java.util.Date
+   * Validated strings compatible with Spark
+   *
+   * Additional logic can be added to extend functionality
+   */
 
   //  def apply(
   //             ruleName: String,
