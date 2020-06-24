@@ -9,4 +9,5 @@ object RuleType extends Enumeration {
   val ValidateStrings = Value("validStrings")
   val ValidateDateTime = Value("validDateTime")
   val ValidateComplex = Value("complex")
+  val ValidateBlank = Value("blank")
 }

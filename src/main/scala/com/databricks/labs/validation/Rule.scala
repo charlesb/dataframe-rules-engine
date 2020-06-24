@@ -22,6 +22,8 @@ class Rule {
   private var _dateTimeLogic: Column = _
   private var _ruleType: RuleType.Value = _
   private var _isAgg: Boolean = _
+  private var _level: String = _
+  private var _blank: Boolean = _
 
   private def setRuleName(value: String): this.type = {
     _ruleName = value
@@ -64,6 +66,11 @@ class Rule {
     this
   }
 
+  private def setBlank(value: Boolean): this.type = {
+    _blank = value
+    this
+  }
+
   private def setDateTimeLogic(value: Column): this.type = {
     _dateTimeLogic = value
     this
@@ -76,6 +83,11 @@ class Rule {
 
   private[validation] def setIsAgg: this.type = {
     _isAgg = inputColumn.expr.prettyName == "aggregateexpression"
+    this
+  }
+
+  private def setLevel(value: String): this.type = {
+    _level = value
     this
   }
 
@@ -103,6 +115,10 @@ class Rule {
 
   private[validation] def isAgg: Boolean = _isAgg
 
+  def level: String = _level
+
+  def blank: Boolean = _blank
+
 }
 
 object Rule {
@@ -114,13 +130,15 @@ object Rule {
   def apply(
              ruleName: String,
              column: Column,
-             boundaries: Bounds
+             boundaries: Bounds,
+             level: String
            ): Rule = {
 
     new Rule()
       .setRuleName(ruleName)
       .setColumn(column)
       .setBoundaries(boundaries)
+      .setLevel(level)
       .setRuleType(RuleType.ValidateBounds)
       .setIsAgg
   }
@@ -128,13 +146,15 @@ object Rule {
   def apply(
              ruleName: String,
              column: Column,
-             validNumerics: Array[Double]
+             validNumerics: Array[Double],
+             level: String
            ): Rule = {
 
     new Rule()
       .setRuleName(ruleName)
       .setColumn(column)
       .setValidNumerics(validNumerics)
+      .setLevel(level)
       .setRuleType(RuleType.ValidateNumerics)
       .setIsAgg
   }
@@ -142,13 +162,15 @@ object Rule {
   def apply(
              ruleName: String,
              column: Column,
-             validNumerics: Array[Long]
+             validNumerics: Array[Long],
+             level: String
            ): Rule = {
 
     new Rule()
       .setRuleName(ruleName)
       .setColumn(column)
       .setValidNumerics(validNumerics.map(_.toString.toDouble))
+      .setLevel(level)
       .setRuleType(RuleType.ValidateNumerics)
       .setIsAgg
   }
@@ -156,13 +178,15 @@ object Rule {
   def apply(
              ruleName: String,
              column: Column,
-             validNumerics: Array[Int]
+             validNumerics: Array[Int],
+             level: String
            ): Rule = {
 
     new Rule()
       .setRuleName(ruleName)
       .setColumn(column)
       .setValidNumerics(validNumerics.map(_.toString.toDouble))
+      .setLevel(level)
       .setRuleType(RuleType.ValidateNumerics)
       .setIsAgg
   }
@@ -170,14 +194,32 @@ object Rule {
   def apply(
              ruleName: String,
              column: Column,
-             validStrings: Array[String]
+             validStrings: Array[String],
+             level: String
            ): Rule = {
 
     new Rule()
       .setRuleName(ruleName)
       .setColumn(column)
       .setValidStrings(validStrings)
+      .setLevel(level)
       .setRuleType(RuleType.ValidateStrings)
+      .setIsAgg
+  }
+
+  def apply(
+             ruleName: String,
+             column: Column,
+             blank: Boolean,
+             level: String
+           ): Rule = {
+
+    new Rule()
+      .setRuleName(ruleName)
+      .setColumn(column)
+      .setBlank(blank)
+      .setLevel(level)
+      .setRuleType(RuleType.ValidateBlank)
       .setIsAgg
   }
 

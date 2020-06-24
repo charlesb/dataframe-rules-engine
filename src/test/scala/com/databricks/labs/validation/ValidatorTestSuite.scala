@@ -32,17 +32,17 @@ class ValidatorTestSuite extends org.scalatest.FunSuite with SparkSessionFixture
       (7, 8, 9)
     ).toDF("retail_price", "scan_price", "cost")
     val minMaxPriceDefs = Array(
-      MinMaxRuleDef("MinMax_Sku_Price", col("retail_price"), Bounds(0.0, 29.99)),
-      MinMaxRuleDef("MinMax_Scan_Price", col("scan_price"), Bounds(0.0, 29.99)),
-      MinMaxRuleDef("MinMax_Cost", col("cost"), Bounds(0.0, 12.0))
+      MinMaxRuleDef("MinMax_Sku_Price", col("retail_price"), Bounds(0.0, 29.99), "FATAL"),
+      MinMaxRuleDef("MinMax_Scan_Price", col("scan_price"), Bounds(0.0, 29.99), "FATAL"),
+      MinMaxRuleDef("MinMax_Cost", col("cost"), Bounds(0.0, 12.0), "FATAL")
     )
 
     // Generate the array of Rules from the minmax generator
-    val rulesArray = RuleSet.generateMinMaxRules(MinMaxRuleDef("MinMax_Cost_Generated", col("cost"), Bounds(0.0, 12.0)))
+    val rulesArray = RuleSet.generateMinMaxRules(MinMaxRuleDef("MinMax_Cost_Generated", col("cost"), Bounds(0.0, 12.0), "FATAL"))
 
     val someRuleSet = RuleSet(testDF)
     someRuleSet.addMinMaxRules(minMaxPriceDefs: _*)
-    someRuleSet.addMinMaxRules("MinMax_Cost_manual", col("cost"), Bounds(0.0,12.0))
+    someRuleSet.addMinMaxRules("MinMax_Cost_manual", col("cost"), Bounds(0.0,12.0), "FATAL")
     someRuleSet.add(rulesArray)
     val (rulesReport, passed) = someRuleSet.validate()
     assert(rulesReport.except(expectedDF).count() == 0)
@@ -64,8 +64,8 @@ class ValidatorTestSuite extends org.scalatest.FunSuite with SparkSessionFixture
       (7, 8, 9)
     ).toDF("retail_price", "scan_price", "cost")
     val minMaxPriceDefs = Array(
-      MinMaxRuleDef("MinMax_Retail_Price_Minus_Scan_Price", col("retail_price")-col("scan_price"), Bounds(0.0, 29.99)),
-      MinMaxRuleDef("MinMax_Scan_Price_Minus_Retail_Price", col("scan_price")-col("retail_price"), Bounds(0.0, 29.99))
+      MinMaxRuleDef("MinMax_Retail_Price_Minus_Scan_Price", col("retail_price")-col("scan_price"), Bounds(0.0, 29.99), "FATAL"),
+      MinMaxRuleDef("MinMax_Scan_Price_Minus_Retail_Price", col("scan_price")-col("retail_price"), Bounds(0.0, 29.99), "FATAL")
     )
 
     // Generate the array of Rules from the minmax generator
@@ -88,8 +88,8 @@ class ValidatorTestSuite extends org.scalatest.FunSuite with SparkSessionFixture
       (7, 8, 9)
     ).toDF("retail_price", "scan_price", "cost")
     val minMaxPriceDefs = Seq(
-      Rule("MinMax_Min_Retail_Price", min("retail_price"), Bounds(0.0, 29.99)),
-      Rule("MinMax_Min_Scan_Price", min("scan_price"), Bounds(3.0, 29.99))
+      Rule("MinMax_Min_Retail_Price", min("retail_price"), Bounds(0.0, 29.99), "FATAL"),
+      Rule("MinMax_Min_Scan_Price", min("scan_price"), Bounds(3.0, 29.99), "FATAL")
     )
 
 
@@ -117,9 +117,9 @@ class ValidatorTestSuite extends org.scalatest.FunSuite with SparkSessionFixture
       (7, 8, 99)
     ).toDF("retail_price", "scan_price", "cost")
     val minMaxPriceDefs = Array(
-      MinMaxRuleDef("MinMax_Sku_Price", col("retail_price"), Bounds(0.0, 29.99)),
-      MinMaxRuleDef("MinMax_Scan_Price", col("scan_price"), Bounds(0.0, 29.99)),
-      MinMaxRuleDef("MinMax_Cost", col("cost"), Bounds(0.0, 12.0))
+      MinMaxRuleDef("MinMax_Sku_Price", col("retail_price"), Bounds(0.0, 29.99), "FATAL"),
+      MinMaxRuleDef("MinMax_Scan_Price", col("scan_price"), Bounds(0.0, 29.99), "FATAL"),
+      MinMaxRuleDef("MinMax_Cost", col("cost"), Bounds(0.0, 12.0), "FATAL")
     )
     // Generate the array of Rules from the minmax generator
 
@@ -140,9 +140,9 @@ class ValidatorTestSuite extends org.scalatest.FunSuite with SparkSessionFixture
       (7, 8, 99)
     ).toDF("retail_price", "scan_price", "cost")
     val minMaxPriceDefs = Array(
-      MinMaxRuleDef("MinMax_Sku_Price", col("retail_price"), Bounds(0.0, 29.99)),
-      MinMaxRuleDef("MinMax_Scan_Price", col("scan_price"), Bounds(0.0, 29.99)),
-      MinMaxRuleDef("MinMax_Cost", col("cost"), Bounds(0.0, 12.0))
+      MinMaxRuleDef("MinMax_Sku_Price", col("retail_price"), Bounds(0.0, 29.99), "FATAL"),
+      MinMaxRuleDef("MinMax_Scan_Price", col("scan_price"), Bounds(0.0, 29.99), "FATAL"),
+      MinMaxRuleDef("MinMax_Cost", col("cost"), Bounds(0.0, 12.0), "FATAL")
     )
     // Generate the array of Rules from the minmax generator
 
@@ -170,8 +170,8 @@ class ValidatorTestSuite extends org.scalatest.FunSuite with SparkSessionFixture
       (7, 8, 3)
     ).toDF("retail_price", "scan_price", "cost")
     val minMaxPriceDefs = Array(
-      MinMaxRuleDef("MinMax_Sku_Price", col("retail_price"), Bounds(0.0, 29.99)),
-      MinMaxRuleDef("MinMax_Scan_Price", col("scan_price"), Bounds(0.0, 29.99))
+      MinMaxRuleDef("MinMax_Sku_Price", col("retail_price"), Bounds(0.0, 29.99), "FATAL"),
+      MinMaxRuleDef("MinMax_Scan_Price", col("scan_price"), Bounds(0.0, 29.99), "FATAL")
     )
 
     val someRuleSet = RuleSet(testDF, "cost")
@@ -207,8 +207,8 @@ class ValidatorTestSuite extends org.scalatest.FunSuite with SparkSessionFixture
       (7, 8, 3)
     ).toDF("retail_price", "scan_price", "cost")
     val minMaxPriceDefs = Array(
-      MinMaxRuleDef("MinMax_Sku_Price", col("retail_price"), Bounds(0.0, 0.0)),
-      MinMaxRuleDef("MinMax_Scan_Price", col("scan_price"), Bounds(0.0, 29.99))
+      MinMaxRuleDef("MinMax_Sku_Price", col("retail_price"), Bounds(0.0, 0.0), "FATAL"),
+      MinMaxRuleDef("MinMax_Scan_Price", col("scan_price"), Bounds(0.0, 29.99), "FATAL")
     )
 
     val someRuleSet = RuleSet(testDF, "cost")
@@ -240,9 +240,9 @@ class ValidatorTestSuite extends org.scalatest.FunSuite with SparkSessionFixture
       ("CheckIfIdIsInLOV","validNumerics",ValidationValue(null,Array(111111111111111L,211111111111111L,311111111111111L),null,null),0,false)
     ).toDF("Rule_Name","Rule_Type","Validation_Values","Invalid_Count","Failed")
     val numericRules = Array(
-      Rule("CheckIfCostIsInLOV", col("cost"), Array(3,6,99)),
-      Rule("CheckIfScanPriceIsInLOV", col("scan_price"), Array(2.51,5.11,8.22)),
-      Rule("CheckIfIdIsInLOV", col("id"), Array(111111111111111L,211111111111111L,311111111111111L))
+      Rule("CheckIfCostIsInLOV", col("cost"), Array(3,6,99), "FATAL"),
+      Rule("CheckIfScanPriceIsInLOV", col("scan_price"), Array(2.51,5.11,8.22), "FATAL"),
+      Rule("CheckIfIdIsInLOV", col("id"), Array(111111111111111L,211111111111111L,311111111111111L), "FATAL")
     )
     // Generate the array of Rules from the minmax generator
 
@@ -256,7 +256,7 @@ class ValidatorTestSuite extends org.scalatest.FunSuite with SparkSessionFixture
     assert(numericValidated.filter(numericValidated("Invalid_Count") > 0).count() == 0)
     assert(numericValidated.filter(numericValidated("Failed") === true).count() == 0)
 
-    val stringRule = Rule("CheckIfProductNameInLOV", col("product_name"), Array("food_a","food_b","food_c"))
+    val stringRule = Rule("CheckIfProductNameInLOV", col("product_name"), Array("food_a","food_b","food_c"), "FATAL")
     // Generate the array of Rules from the minmax generator
 
     val stringLovExpectedDF = Seq(

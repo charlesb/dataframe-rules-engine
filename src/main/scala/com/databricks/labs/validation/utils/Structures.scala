@@ -20,6 +20,6 @@ object Structures {
 
   case class Bounds(lower: Double = Double.NegativeInfinity, upper: Double = Double.PositiveInfinity)
 
-  case class MinMaxRuleDef(ruleName: String, column: Column, bounds: Bounds, by: Column*)
+  case class MinMaxRuleDef(ruleName: String, column: Column, bounds: Bounds, level: String, by: Column*)
 
 }

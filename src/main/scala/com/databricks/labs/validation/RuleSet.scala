@@ -59,8 +59,8 @@ class RuleSet extends SparkSessionWrapper {
 
     add(minMaxRuleDefs.flatMap(ruleDef => {
       Seq(
-        Rule(s"${ruleDef.ruleName}_min", min(ruleDef.column), ruleDef.bounds),
-        Rule(s"${ruleDef.ruleName}_max", max(ruleDef.column), ruleDef.bounds)
+        Rule(s"${ruleDef.ruleName}_min", min(ruleDef.column), ruleDef.bounds, ruleDef.level),
+        Rule(s"${ruleDef.ruleName}_max", max(ruleDef.column), ruleDef.bounds, ruleDef.level)
       )
     }).toArray)
     this
@@ -77,11 +77,12 @@ class RuleSet extends SparkSessionWrapper {
   def addMinMaxRules(ruleName: String,
                      inputColumn: Column,
                      boundaries: Bounds,
+                     level: String,
                      by: Column*
                     ): this.type = {
     val rules = Array(
-      Rule(s"${ruleName}_min", min(inputColumn), boundaries),
-      Rule(s"${ruleName}_max", max(inputColumn), boundaries)
+      Rule(s"${ruleName}_min", min(inputColumn), boundaries, level),
+      Rule(s"${ruleName}_max", max(inputColumn), boundaries, level)
     )
     add(rules)
   }
@@ -184,8 +185,8 @@ object RuleSet {
 
     minMaxRuleDefs.flatMap(ruleDef => {
       Seq(
-        Rule(s"${ruleDef.ruleName}_min", min(ruleDef.column), ruleDef.bounds),
-        Rule(s"${ruleDef.ruleName}_max", max(ruleDef.column), ruleDef.bounds)
+        Rule(s"${ruleDef.ruleName}_min", min(ruleDef.column), ruleDef.bounds, ruleDef.level),
+        Rule(s"${ruleDef.ruleName}_max", max(ruleDef.column), ruleDef.bounds, ruleDef.level)
       )
     }).toArray
   }
