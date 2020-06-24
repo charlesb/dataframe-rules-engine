@@ -131,7 +131,7 @@ object Rule {
              ruleName: String,
              column: Column,
              boundaries: Bounds,
-             level: String
+             level: String = "FATAL"
            ): Rule = {
 
     new Rule()
@@ -195,7 +195,7 @@ object Rule {
              ruleName: String,
              column: Column,
              validStrings: Array[String],
-             level: String
+             level: String = "FATAL"
            ): Rule = {
 
     new Rule()
@@ -211,7 +211,7 @@ object Rule {
              ruleName: String,
              column: Column,
              blank: Boolean,
-             level: String
+             level: String = "FATAL"
            ): Rule = {
 
     new Rule()
