@@ -17,6 +17,7 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
   private val dateTimeRules = ruleSet.getRules.filter(_.ruleType == RuleType.ValidateDateTime)
   private val complexRules = ruleSet.getRules.filter(_.ruleType == RuleType.ValidateComplex)
   private val blankRules = ruleSet.getRules.filter(_.ruleType == RuleType.ValidateBlank)
+  private val dataTypeRules = ruleSet.getRules.filter(_.ruleType == RuleType.ValidateDataType)
   private val byCols = ruleSet.getGroupBys map col
 
   /**
@@ -39,13 +40,15 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
       RuleType.ValidateNumerics.toString -> lit(null).cast(ArrayType(DoubleType)).alias(RuleType.ValidateNumerics.toString),
       RuleType.ValidateStrings.toString -> lit(null).cast(ArrayType(StringType)).alias(RuleType.ValidateStrings.toString),
       RuleType.ValidateDateTime.toString -> lit(null).cast(LongType).alias(RuleType.ValidateDateTime.toString),
-      RuleType.ValidateBlank.toString -> lit(null).cast(BooleanType).alias(RuleType.ValidateBlank.toString)
+      RuleType.ValidateBlank.toString -> lit(null).cast(BooleanType).alias(RuleType.ValidateBlank.toString),
+      RuleType.ValidateDataType.toString -> lit(null).cast(StringType).alias(RuleType.ValidateDataType.toString)
     )
     rule.ruleType match {
       case RuleType.ValidateBounds => nulls(RuleType.ValidateBounds.toString) = array(lit(rule.boundaries.lower), lit(rule.boundaries.upper)).alias(RuleType.ValidateBounds.toString)
       case RuleType.ValidateNumerics => nulls(RuleType.ValidateNumerics.toString) = lit(rule.validNumerics).alias(RuleType.ValidateNumerics.toString)
       case RuleType.ValidateStrings => nulls(RuleType.ValidateStrings.toString) = lit(rule.validStrings).alias(RuleType.ValidateStrings.toString)
       case RuleType.ValidateBlank => nulls(RuleType.ValidateBlank.toString) = lit(rule.blank).alias(RuleType.ValidateBlank.toString)
+      case RuleType.ValidateDataType => nulls(RuleType.ValidateDataType.toString) = lit(rule.dataType).alias(RuleType.ValidateDataType.toString)
     }
     val validationsByType = nulls.toMap.values.toSeq
     struct(
@@ -157,6 +160,20 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
           val failed = when(col(rule.ruleName) > 0,true).otherwise(false).alias("Failed")
           val results = Seq(col(rule.ruleName).cast(LongType).alias("Invalid_Count"), failed)
           Selects(buildOutputStruct(rule, results), first)
+        case RuleType.ValidateDataType =>
+          val invalid = if (rule.dataType == "TEXT") {
+            rule.inputColumn.rlike("[^a-zA-Z]+")
+          } else if (rule.dataType == "INTEGER") {
+            rule.inputColumn.rlike("[^0-9]+")
+          } else if (rule.dataType == "DECIMAL") {
+            rule.inputColumn.rlike("[^0-9.]+")
+          } else {
+            throw new Exception(s"Data type validation rule expect 'TEXT', 'INTEGER' or 'DECIMAL' but '${rule.dataType}' given")
+          }
+          val first = sum(when(invalid, 1).otherwise(0)).alias(rule.ruleName)
+          val failed = when(col(rule.ruleName) > 0,true).otherwise(false).alias("Failed")
+          val results = Seq(col(rule.ruleName).cast(LongType).alias("Invalid_Count"), failed)
+          Selects(buildOutputStruct(rule, results), first)
         case RuleType.ValidateDateTime => ??? // TODO
         case RuleType.ValidateComplex => ??? // TODO
       }
@@ -179,7 +196,7 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
   private[validation] def validate: (DataFrame, Boolean) = {
 
     //    val selects = buildBaseSelects(boundaryRules)
-    val selects = buildBaseSelects(boundaryRules) ++ buildBaseSelects(categoricalRules) ++ buildBaseSelects(blankRules)
+    val selects = buildBaseSelects(boundaryRules) ++ buildBaseSelects(categoricalRules) ++ buildBaseSelects(blankRules) ++ buildBaseSelects(dataTypeRules)
     val fullOutput = explode(array(selects.map(_.output): _*)).alias("Validations")
     val summaryDF = if (ruleSet.getGroupBys.isEmpty) {
       ruleSet.getDf

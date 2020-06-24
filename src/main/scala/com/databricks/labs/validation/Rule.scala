@@ -24,6 +24,7 @@ class Rule {
   private var _isAgg: Boolean = _
   private var _level: String = _
   private var _blank: Boolean = _
+  private var _dataType: String = _
 
   private def setRuleName(value: String): this.type = {
     _ruleName = value
@@ -68,6 +69,11 @@ class Rule {
 
   private def setBlank(value: Boolean): this.type = {
     _blank = value
+    this
+  }
+
+  private def setDataType(value: String): this.type = {
+    _dataType = value
     this
   }
 
@@ -119,6 +125,8 @@ class Rule {
 
   def blank: Boolean = _blank
 
+  def dataType: String = _dataType
+
 }
 
 object Rule {
@@ -131,7 +139,7 @@ object Rule {
              ruleName: String,
              column: Column,
              boundaries: Bounds,
-             level: String = "FATAL"
+             level: String
            ): Rule = {
 
     new Rule()
@@ -195,7 +203,7 @@ object Rule {
              ruleName: String,
              column: Column,
              validStrings: Array[String],
-             level: String = "FATAL"
+             level: String
            ): Rule = {
 
     new Rule()
@@ -211,7 +219,7 @@ object Rule {
              ruleName: String,
              column: Column,
              blank: Boolean,
-             level: String = "FATAL"
+             level: String
            ): Rule = {
 
     new Rule()
@@ -220,6 +228,22 @@ object Rule {
       .setBlank(blank)
       .setLevel(level)
       .setRuleType(RuleType.ValidateBlank)
+      .setIsAgg
+  }
+
+  def apply(
+             ruleName: String,
+             column: Column,
+             dataType: String,
+             level: String
+           ): Rule = {
+
+    new Rule()
+      .setRuleName(ruleName)
+      .setColumn(column)
+      .setDataType(dataType)
+      .setLevel(level)
+      .setRuleType(RuleType.ValidateDataType)
       .setIsAgg
   }
 
