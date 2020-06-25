@@ -16,6 +16,14 @@ object Lookups {
 
 }
 
+/**
+ * Tag the rule with the given severity (either FATAL or WARNING)
+ */
+object Severity {
+  final val fatal = "FATAL"
+  final val warning = "WARNING"
+}
+
 object Structures {
 
   case class Bounds(lower: Double = Double.NegativeInfinity, upper: Double = Double.PositiveInfinity)

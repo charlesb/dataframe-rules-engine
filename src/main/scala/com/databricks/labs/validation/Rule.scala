@@ -22,7 +22,7 @@ class Rule {
   private var _dateTimeLogic: Column = _
   private var _ruleType: RuleType.Value = _
   private var _isAgg: Boolean = _
-  private var _level: String = _
+  private var _severity: String = _
   private var _blank: Boolean = _
   private var _dataType: String = _
 
@@ -92,8 +92,8 @@ class Rule {
     this
   }
 
-  private def setLevel(value: String): this.type = {
-    _level = value
+  private def setSeverity(value: String): this.type = {
+    _severity = value
     this
   }
 
@@ -121,7 +121,7 @@ class Rule {
 
   private[validation] def isAgg: Boolean = _isAgg
 
-  def level: String = _level
+  def severity: String = _severity
 
   def blank: Boolean = _blank
 
@@ -139,14 +139,14 @@ object Rule {
              ruleName: String,
              column: Column,
              boundaries: Bounds,
-             level: String
+             severity: String
            ): Rule = {
 
     new Rule()
       .setRuleName(ruleName)
       .setColumn(column)
       .setBoundaries(boundaries)
-      .setLevel(level)
+      .setSeverity(severity)
       .setRuleType(RuleType.ValidateBounds)
       .setIsAgg
   }
@@ -155,14 +155,14 @@ object Rule {
              ruleName: String,
              column: Column,
              validNumerics: Array[Double],
-             level: String
+             severity: String
            ): Rule = {
 
     new Rule()
       .setRuleName(ruleName)
       .setColumn(column)
       .setValidNumerics(validNumerics)
-      .setLevel(level)
+      .setSeverity(severity)
       .setRuleType(RuleType.ValidateNumerics)
       .setIsAgg
   }
@@ -171,14 +171,14 @@ object Rule {
              ruleName: String,
              column: Column,
              validNumerics: Array[Long],
-             level: String
+             severity: String
            ): Rule = {
 
     new Rule()
       .setRuleName(ruleName)
       .setColumn(column)
       .setValidNumerics(validNumerics.map(_.toString.toDouble))
-      .setLevel(level)
+      .setSeverity(severity)
       .setRuleType(RuleType.ValidateNumerics)
       .setIsAgg
   }
@@ -187,14 +187,14 @@ object Rule {
              ruleName: String,
              column: Column,
              validNumerics: Array[Int],
-             level: String
+             severity: String
            ): Rule = {
 
     new Rule()
       .setRuleName(ruleName)
       .setColumn(column)
       .setValidNumerics(validNumerics.map(_.toString.toDouble))
-      .setLevel(level)
+      .setSeverity(severity)
       .setRuleType(RuleType.ValidateNumerics)
       .setIsAgg
   }
@@ -203,14 +203,14 @@ object Rule {
              ruleName: String,
              column: Column,
              validStrings: Array[String],
-             level: String
+             severity: String
            ): Rule = {
 
     new Rule()
       .setRuleName(ruleName)
       .setColumn(column)
       .setValidStrings(validStrings)
-      .setLevel(level)
+      .setSeverity(severity)
       .setRuleType(RuleType.ValidateStrings)
       .setIsAgg
   }
@@ -219,14 +219,14 @@ object Rule {
              ruleName: String,
              column: Column,
              blank: Boolean,
-             level: String
+             severity: String
            ): Rule = {
 
     new Rule()
       .setRuleName(ruleName)
       .setColumn(column)
       .setBlank(blank)
-      .setLevel(level)
+      .setSeverity(severity)
       .setRuleType(RuleType.ValidateBlank)
       .setIsAgg
   }
@@ -235,14 +235,14 @@ object Rule {
              ruleName: String,
              column: Column,
              dataType: String,
-             level: String
+             severity: String
            ): Rule = {
 
     new Rule()
       .setRuleName(ruleName)
       .setColumn(column)
       .setDataType(dataType)
-      .setLevel(level)
+      .setSeverity(severity)
       .setRuleType(RuleType.ValidateDataType)
       .setIsAgg
   }

@@ -1,6 +1,6 @@
 package com.databricks.labs.validation
 
-import com.databricks.labs.validation.utils.SparkSessionWrapper
+import com.databricks.labs.validation.utils.{Severity, SparkSessionWrapper}
 import org.apache.spark.sql.{Column, DataFrame}
 import org.apache.spark.sql.functions.{array, col, collect_set, explode, expr, lit, struct, sum, when}
 import org.apache.spark.sql.types._
@@ -66,7 +66,7 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
     struct(
       lit(rule.ruleName).alias("Rule_Name"),
       lit(rule.ruleType.toString).alias("Rule_Type"),
-      lit(rule.level).alias("Rule_Level"),
+      lit(rule.severity).alias("Rule_Severity"),
       buildValidationsByType(rule),
       struct(results: _*).alias("Results")
     ).alias("Validation")
@@ -84,7 +84,7 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
       col("Validations.Validation_Values"),
       col("Validations.Results.Invalid_Count"),
       col("Validations.Results.Failed"),
-      col("Validations.Rule_Level")
+      col("Validations.Rule_Severity")
     )
     if (ruleSet.getGroupBys.isEmpty) {
       df.select(summaryCols: _*)
@@ -128,12 +128,16 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
 
           // WHEN RULE NOT AGG - determine if the result of "first" select (0 or 1) is > 0, if it is, the rule has
           // failed since the sum(1 or more 1s) means that 1 or more rows have failed thus the rule has failed
-          val failed = if (rule.isAgg) {
-            when(
-              col(rule.ruleName) < rule.boundaries.lower || col(rule.ruleName) > rule.boundaries.upper, true)
-              .otherwise(false).alias("Failed")
-          } else{
-            when(col(rule.ruleName) > 0,true).otherwise(false).alias("Failed")
+          val failed = if (rule.severity == Severity.fatal) {
+            if (rule.isAgg) {
+              when(
+                col(rule.ruleName) < rule.boundaries.lower || col(rule.ruleName) > rule.boundaries.upper, true)
+                .otherwise(false).alias("Failed")
+            } else{
+              when(col(rule.ruleName) > 0,true).otherwise(false).alias("Failed")
+            }
+          } else {
+            lit(false).alias("Failed")
           }
           val results = if (rule.isAgg) {
             Seq(when(failed, 1).otherwise(0).cast(LongType).alias("Invalid_Count"), failed)
@@ -149,7 +153,9 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
             expr(s"size(array_except(${rule.ruleName}," +
               s"array('${rule.validStrings.mkString("','")}')))")
           }
-          val failed = when(invalid > 0, true).otherwise(false).alias("Failed")
+          val failed = if (rule.severity == Severity.fatal) {
+            when(invalid > 0, true).otherwise(false).alias("Failed")
+          } else lit(false).alias("Failed")
           // TODO -- Cardinality check and WARNING
           val first = collect_set(rule.inputColumn).alias(rule.ruleName)
           val results = Seq(invalid.cast(LongType).alias("Invalid_Count"), failed)
@@ -157,7 +163,9 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
         case RuleType.ValidateBlank =>
           val invalid = if (rule.blank) rule.inputColumn.isNotNull else rule.inputColumn.isNull
           val first = sum(when(invalid, 1).otherwise(0)).alias(rule.ruleName)
-          val failed = when(col(rule.ruleName) > 0,true).otherwise(false).alias("Failed")
+          val failed = if (rule.severity == Severity.fatal) {
+            when(col(rule.ruleName) > 0,true).otherwise(false).alias("Failed")
+          } else lit(false).alias("Failed")
           val results = Seq(col(rule.ruleName).cast(LongType).alias("Invalid_Count"), failed)
           Selects(buildOutputStruct(rule, results), first)
         case RuleType.ValidateDataType =>
@@ -171,7 +179,9 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
             throw new Exception(s"Data type validation rule expect 'TEXT', 'INTEGER' or 'DECIMAL' but '${rule.dataType}' given")
           }
           val first = sum(when(invalid, 1).otherwise(0)).alias(rule.ruleName)
-          val failed = when(col(rule.ruleName) > 0,true).otherwise(false).alias("Failed")
+          val failed = if (rule.severity == Severity.fatal) {
+            when(col(rule.ruleName) > 0, true).otherwise(false).alias("Failed")
+          } else lit(false).alias("Failed")
           val results = Seq(col(rule.ruleName).cast(LongType).alias("Invalid_Count"), failed)
           Selects(buildOutputStruct(rule, results), first)
         case RuleType.ValidateDateTime => ??? // TODO
