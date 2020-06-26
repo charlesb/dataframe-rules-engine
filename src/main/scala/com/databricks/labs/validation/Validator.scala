@@ -188,7 +188,7 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
           val results = Seq(col(rule.ruleName).cast(LongType).alias("Invalid_Count"), failed)
           Selects(buildOutputStruct(rule, results), first)
         case RuleType.ValidateDateBounds =>
-          val invalid = to_date(rule.inputColumn.cast(StringType), "yyyyMMdd") < rule.dateBounds.lower || to_date(rule.inputColumn.cast(StringType), "yyyyMMdd") > rule.dateBounds.upper
+          val invalid = to_date(rule.inputColumn.cast(StringType), "yyyyMMdd").isNull || (to_date(rule.inputColumn.cast(StringType), "yyyyMMdd") < rule.dateBounds.lower || to_date(rule.inputColumn.cast(StringType), "yyyyMMdd") > rule.dateBounds.upper)
           val first = sum(when(invalid, 1).otherwise(0)).alias(rule.ruleName)
           val failed = if (rule.severity == Severity.fatal) {
             when(col(rule.ruleName) > 0, true).otherwise(false).alias("Failed")
