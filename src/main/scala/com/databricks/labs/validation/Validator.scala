@@ -173,11 +173,11 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
           Selects(buildOutputStruct(rule, results), first)
         case RuleType.ValidateDataType =>
           val invalid = if (rule.dataType == "TEXT") {
-            rule.inputColumn.rlike("[^a-zA-Z\\s\\-\\_]+")
+            rule.inputColumn.rlike("[^a-zA-Z\\s\\-\\_]+") or rule.inputColumn.isNull
           } else if (rule.dataType == "INTEGER") {
-            rule.inputColumn.rlike("[^0-9]+")
+            rule.inputColumn.rlike("[^0-9]+") or rule.inputColumn.isNull
           } else if (rule.dataType == "DECIMAL") {
-            rule.inputColumn.rlike("[^0-9.]+")
+            rule.inputColumn.rlike("[^0-9.]+") or rule.inputColumn.isNull
           } else {
             throw new Exception(s"Data type validation rule expect 'TEXT', 'INTEGER' or 'DECIMAL' but '${rule.dataType}' given")
           }
