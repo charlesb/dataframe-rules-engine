@@ -173,7 +173,7 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
           Selects(buildOutputStruct(rule, results), first)
         case RuleType.ValidateDataType =>
           val invalid = if (rule.dataType == "TEXT") {
-            rule.inputColumn.rlike("[^a-zA-Z]+")
+            rule.inputColumn.rlike("[^a-zA-Z\\s\\-\\_]+")
           } else if (rule.dataType == "INTEGER") {
             rule.inputColumn.rlike("[^0-9]+")
           } else if (rule.dataType == "DECIMAL") {
