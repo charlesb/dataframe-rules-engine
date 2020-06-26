@@ -1,6 +1,7 @@
 package com.databricks.labs.validation.utils
 
 import org.apache.spark.sql.Column
+import org.apache.spark.sql.functions._
 
 /**
  * Lookups is a handy way to identify categorical values
@@ -29,5 +30,7 @@ object Structures {
   case class Bounds(lower: Double = Double.NegativeInfinity, upper: Double = Double.PositiveInfinity)
 
   case class MinMaxRuleDef(ruleName: String, column: Column, bounds: Bounds, level: String, by: Column*)
+
+  case class DateBounds(lower: Column = to_date(lit("2012-01-01")), upper: Column = to_date(current_date()))
 
 }

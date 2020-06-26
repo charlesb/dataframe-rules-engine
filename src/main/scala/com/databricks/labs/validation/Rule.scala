@@ -2,7 +2,7 @@ package com.databricks.labs.validation
 
 import java.util.UUID
 
-import com.databricks.labs.validation.utils.Structures.Bounds
+import com.databricks.labs.validation.utils.Structures.{Bounds, DateBounds}
 import org.apache.spark.sql.Column
 
 /**
@@ -25,6 +25,7 @@ class Rule {
   private var _severity: String = _
   private var _blank: Boolean = _
   private var _dataType: String = _
+  private var _dateBounds: DateBounds = _
 
   private def setRuleName(value: String): this.type = {
     _ruleName = value
@@ -97,6 +98,11 @@ class Rule {
     this
   }
 
+  private def setDateBoundaries(value: DateBounds): this.type = {
+    _dateBounds = value
+    this
+  }
+
   def ruleName: String = _ruleName
 
   def inputColumn: Column = _inputCol
@@ -126,6 +132,8 @@ class Rule {
   def blank: Boolean = _blank
 
   def dataType: String = _dataType
+
+  def dateBounds: DateBounds = _dateBounds
 
 }
 
@@ -244,6 +252,22 @@ object Rule {
       .setDataType(dataType)
       .setSeverity(severity)
       .setRuleType(RuleType.ValidateDataType)
+      .setIsAgg
+  }
+
+  def apply(
+             ruleName: String,
+             column: Column,
+             dateBounds: DateBounds,
+             severity: String
+           ): Rule = {
+
+    new Rule()
+      .setRuleName(ruleName)
+      .setColumn(column)
+      .setDateBoundaries(dateBounds)
+      .setSeverity(severity)
+      .setRuleType(RuleType.ValidateDateBounds)
       .setIsAgg
   }
 
