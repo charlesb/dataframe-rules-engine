@@ -112,7 +112,7 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
       rule.ruleType match {
         case RuleType.ValidateBounds =>
           // Rule evaluation for NON-AGG RULES ONLY
-          val invalid = rule.inputColumn < rule.boundaries.lower || rule.inputColumn > rule.boundaries.upper
+          val invalid = rule.inputColumn.isNull || (rule.inputColumn < rule.boundaries.lower || rule.inputColumn > rule.boundaries.upper)
           // This is the first select it must come before subsequent selects as it aliases the original column name
           // to that of the rule name. ADDITIONALLY, this evaluates the boundary rule WHEN the input col is not an Agg.
           // This can be confusing because for Non-agg columns it renames the column to the rule_name AND returns a 0
