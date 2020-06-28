@@ -271,6 +271,20 @@ object Rule {
       .setIsAgg
   }
 
+  def apply(
+             ruleName: String,
+             column: Column,
+             severity: String
+           ): Rule = {
+
+    new Rule()
+      .setRuleName(ruleName)
+      .setColumn(column)
+      .setSeverity(severity)
+      .setRuleType(RuleType.ValidateColumn)
+      .setIsAgg
+  }
+
   /**
    * TODO -- Implement Date/Time Logic for:
    * Column Type (i.e. current_timestamp and current_date)

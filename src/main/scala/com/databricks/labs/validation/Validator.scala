@@ -2,7 +2,7 @@ package com.databricks.labs.validation
 
 import com.databricks.labs.validation.utils.{Severity, SparkSessionWrapper}
 import org.apache.spark.sql.{Column, DataFrame}
-import org.apache.spark.sql.functions.{array, col, collect_set, explode, expr, lit, struct, sum, when, to_date}
+import org.apache.spark.sql.functions.{array, col, collect_set, explode, expr, lit, struct, sum, to_date, when}
 import org.apache.spark.sql.types._
 
 import scala.collection.mutable
@@ -19,6 +19,7 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
   private val blankRules = ruleSet.getRules.filter(_.ruleType == RuleType.ValidateBlank)
   private val dataTypeRules = ruleSet.getRules.filter(_.ruleType == RuleType.ValidateDataType)
   private val dateBoundRules = ruleSet.getRules.filter(_.ruleType == RuleType.ValidateDateBounds)
+  private val validColumnRule = ruleSet.getRules.filter(_.ruleType == RuleType.ValidateColumn)
   private val byCols = ruleSet.getGroupBys map col
 
   /**
@@ -43,7 +44,8 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
       RuleType.ValidateDateTime.toString -> lit(null).cast(LongType).alias(RuleType.ValidateDateTime.toString),
       RuleType.ValidateBlank.toString -> lit(null).cast(BooleanType).alias(RuleType.ValidateBlank.toString),
       RuleType.ValidateDataType.toString -> lit(null).cast(StringType).alias(RuleType.ValidateDataType.toString),
-      RuleType.ValidateDateBounds.toString -> lit(null).cast(ArrayType(DateType)).alias(RuleType.ValidateDateBounds.toString)
+      RuleType.ValidateDateBounds.toString -> lit(null).cast(ArrayType(DateType)).alias(RuleType.ValidateDateBounds.toString),
+      RuleType.ValidateColumn.toString -> lit(null).cast(StringType).alias(RuleType.ValidateColumn.toString)
     )
     rule.ruleType match {
       case RuleType.ValidateBounds => nulls(RuleType.ValidateBounds.toString) = array(lit(rule.boundaries.lower), lit(rule.boundaries.upper)).alias(RuleType.ValidateBounds.toString)
@@ -52,6 +54,7 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
       case RuleType.ValidateBlank => nulls(RuleType.ValidateBlank.toString) = lit(rule.blank).alias(RuleType.ValidateBlank.toString)
       case RuleType.ValidateDataType => nulls(RuleType.ValidateDataType.toString) = lit(rule.dataType).alias(RuleType.ValidateDataType.toString)
       case RuleType.ValidateDateBounds => nulls(RuleType.ValidateDateBounds.toString) = array(rule.dateBounds.lower, rule.dateBounds.upper).alias(RuleType.ValidateDateBounds.toString)
+      case RuleType.ValidateColumn => nulls(RuleType.ValidateColumn.toString) = lit(rule.inputColumn.toString()).alias(RuleType.ValidateColumn.toString)
     }
     val validationsByType = nulls.toMap.values.toSeq
     struct(
@@ -195,6 +198,14 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
           } else lit(false).alias("Failed")
           val results = Seq(col(rule.ruleName).cast(LongType).alias("Invalid_Count"), failed)
           Selects(buildOutputStruct(rule, results), first)
+        case RuleType.ValidateColumn =>
+          val valid = rule.inputColumn
+          val first = sum(when(valid, 0).otherwise(1)).alias(rule.ruleName)
+          val failed = if (rule.severity == Severity.fatal) {
+            when(col(rule.ruleName) > 0, true).otherwise(false).alias("Failed")
+          } else lit(false).alias("Failed")
+          val results = Seq(col(rule.ruleName).cast(LongType).alias("Invalid_Count"), failed)
+          Selects(buildOutputStruct(rule, results), first)
         case RuleType.ValidateDateTime => ??? // TODO
         case RuleType.ValidateComplex => ??? // TODO
       }
@@ -217,7 +228,7 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
   private[validation] def validate: (DataFrame, Boolean) = {
 
     //    val selects = buildBaseSelects(boundaryRules)
-    val selects = buildBaseSelects(boundaryRules) ++ buildBaseSelects(categoricalRules) ++ buildBaseSelects(blankRules) ++ buildBaseSelects(dataTypeRules) ++ buildBaseSelects(dateBoundRules)
+    val selects = buildBaseSelects(boundaryRules) ++ buildBaseSelects(categoricalRules) ++ buildBaseSelects(blankRules) ++ buildBaseSelects(dataTypeRules) ++ buildBaseSelects(dateBoundRules) ++ buildBaseSelects(validColumnRule)
     val fullOutput = explode(array(selects.map(_.output): _*)).alias("Validations")
     val summaryDF = if (ruleSet.getGroupBys.isEmpty) {
       ruleSet.getDf
