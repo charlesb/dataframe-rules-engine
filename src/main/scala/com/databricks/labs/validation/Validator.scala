@@ -200,7 +200,11 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
           Selects(buildOutputStruct(rule, results), first)
         case RuleType.ValidateColumn =>
           val valid = rule.inputColumn
-          val first = sum(when(valid, 0).otherwise(1)).alias(rule.ruleName)
+          val first = if (ruleSet.isGrouped) {
+            when(valid, 0).otherwise(1).alias(rule.ruleName)
+          } else {
+            sum(when(valid, 0).otherwise(1)).alias(rule.ruleName)
+          }
           val failed = if (rule.severity == Severity.fatal) {
             when(col(rule.ruleName) > 0, true).otherwise(false).alias("Failed")
           } else lit(false).alias("Failed")

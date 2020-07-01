@@ -12,4 +12,4 @@ project/target/
 /target/
 /project/build.properties
 /src/main/scala/log4j.properties
-/src/main/scala/SparkDemo.scala
+/src/main/scala/BillingValidation.scala
