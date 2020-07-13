@@ -2,13 +2,13 @@ name := "dataframe-rules-engine"
 
 organization := "com.databricks"
 
-version := "0.1.1"
+version := "0.1.0"
 
-scalaVersion := "2.11.12"
+scalaVersion := "2.12.11"
 scalacOptions ++= Seq("-Xmax-classfile-name", "78")
 
-libraryDependencies += "org.apache.spark" %% "spark-core" % "2.4.0"
-libraryDependencies += "org.apache.spark" %% "spark-sql" % "2.4.0"
+libraryDependencies += "org.apache.spark" %% "spark-core" % "3.0.0"
+libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.0.0"
 libraryDependencies += "org.scalactic" %% "scalactic" % "3.1.1"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.1.1" % "test"
 
@@ -31,7 +31,7 @@ testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oD")
 
 
 lazy val commonSettings = Seq(
-  version := "0.1.1",
+  version := "0.1.0",
   organization := "com.databricks",
-  scalaVersion := "2.11.12"
+  scalaVersion := "2.12.11"
 )
