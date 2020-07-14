@@ -281,7 +281,7 @@ object Rule {
       .setRuleName(ruleName)
       .setColumn(column)
       .setSeverity(severity)
-      .setRuleType(RuleType.ValidateColumn)
+      .setRuleType(RuleType.ValidateAdhoc)
       .setIsAgg
   }
 
