@@ -31,6 +31,6 @@ object Structures {
 
   case class MinMaxRuleDef(ruleName: String, column: Column, bounds: Bounds, level: String, by: Column*)
 
-  case class DateBounds(lower: Column = to_date(lit("2012-01-01")), upper: Column = to_date(current_date()))
+  case class DateBounds(lower: Column = to_date(lit("1970-01-01")), upper: Column = to_date(current_date()))
 
 }
