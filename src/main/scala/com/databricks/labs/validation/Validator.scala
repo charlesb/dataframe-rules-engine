@@ -19,7 +19,7 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
   private val blankRules = ruleSet.getRules.filter(_.ruleType == RuleType.ValidateBlank)
   private val dataTypeRules = ruleSet.getRules.filter(_.ruleType == RuleType.ValidateDataType)
   private val dateBoundRules = ruleSet.getRules.filter(_.ruleType == RuleType.ValidateDateBounds)
-  private val validColumnRule = ruleSet.getRules.filter(_.ruleType == RuleType.ValidateAdhoc)
+  private val validAdhocRule = ruleSet.getRules.filter(_.ruleType == RuleType.ValidateAdhoc)
   private val byCols = ruleSet.getGroupBys map col
 
   /**
@@ -232,7 +232,7 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
   private[validation] def validate: (DataFrame, Boolean) = {
 
     //    val selects = buildBaseSelects(boundaryRules)
-    val selects = buildBaseSelects(boundaryRules) ++ buildBaseSelects(categoricalRules) ++ buildBaseSelects(blankRules) ++ buildBaseSelects(dataTypeRules) ++ buildBaseSelects(dateBoundRules) ++ buildBaseSelects(validColumnRule)
+    val selects = buildBaseSelects(boundaryRules) ++ buildBaseSelects(categoricalRules) ++ buildBaseSelects(blankRules) ++ buildBaseSelects(dataTypeRules) ++ buildBaseSelects(dateBoundRules) ++ buildBaseSelects(validAdhocRule)
     val fullOutput = explode(array(selects.map(_.output): _*)).alias("Validations")
     val summaryDF = if (ruleSet.getGroupBys.isEmpty) {
       ruleSet.getDf
