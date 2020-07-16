@@ -277,6 +277,7 @@ class ValidatorTestSuite extends org.scalatest.FunSuite with SparkSessionFixture
       Row("CheckIfIdIsInLOV","validNumerics",Row(null,null,null,Array(111111111111111.0,211111111111111.0,311111111111111.0),null,null,null,null),0L,false,Severity.fatal)
     )
     val numericLovExpectedDF = spark.createDataFrame(spark.sparkContext.parallelize(numericLovExpectedData), reportSchema)
+
     val numericRules = Array(
       Rule("CheckIfCostIsInLOV", col("cost"), Array(3.0,6.0,99.0), Severity.fatal),
       Rule("CheckIfScanPriceIsInLOV", col("scan_price"), Array(2.51,5.11,8.22), Severity.fatal),
@@ -310,6 +311,36 @@ class ValidatorTestSuite extends org.scalatest.FunSuite with SparkSessionFixture
     assert(stringValidated.except(stringLovExpectedDF).count() == 0, "Expected df is not equal to the returned rules report.")
     assert(stringValidated.filter(stringValidated("Invalid_Count") > 0).count() == 0)
     assert(stringValidated.filter(stringValidated("Failed") === true).count() == 0)
+  }
+
+  test("Validate that a value must be blank or not blank with severity level set to WARN") {
+    val testDF = Seq[(String, java.lang.Double, java.lang.Double, java.lang.Long)](
+      ("food_a", 2.51, 3.0, null),
+      ("food_b", 5.11, null, 211111111111111L)
+    ).toDF("product_name", "scan_price", "cost", "id")
+
+    val blankValidationExpectedData = Seq(
+      Row("CheckIfIdIsBlank","blank",Row(null,null,null,null,null,true,null,null),1L,false,"WARN"),
+      Row("CheckIfCostIsNotBlank","blank",Row(null,null,null,null,null,false,null,null),1L,false,"WARN")
+    )
+
+    val blankValidationExpectedDF = spark.createDataFrame(spark.sparkContext.parallelize(blankValidationExpectedData), reportSchema)
+
+    val blankRules = Array(
+      Rule("CheckIfIdIsBlank", col("id"), true, Severity.warning),
+      Rule("CheckIfCostIsNotBlank", col("cost"), false, Severity.warning)
+    )
+
+    val blankRuleSet = RuleSet(testDF)
+    blankRuleSet.add(blankRules)
+    val (blankValidated, blankPassed) = blankRuleSet.validate()
+
+    assert(blankRules.map(_.ruleType == RuleType.ValidateBlank).reduce(_ && _), "Not every value is validate blank.")
+    assert(blankPassed)
+    assert(blankValidated.except(blankValidationExpectedDF).count() == 0, "Expected df is not equal to the returned rules report.")
+    assert(blankValidated.filter(blankValidated("Invalid_Count") > 0).count() == 2)
+    assert(blankValidated.filter(blankValidated("Failed") === true).count() == 0)
+
   }
 
 }
