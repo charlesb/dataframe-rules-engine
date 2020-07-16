@@ -26,6 +26,7 @@ class Rule {
   private var _blank: Boolean = _
   private var _dataType: String = _
   private var _dateBounds: DateBounds = _
+  private val VALID_SEVERITY_LEVELS = Set("FATAL", "WARN")
 
   private def setRuleName(value: String): this.type = {
     _ruleName = value
@@ -93,8 +94,16 @@ class Rule {
     this
   }
 
-  private def setSeverity(value: String): this.type = {
-    _severity = value
+  /** Control the severity level.
+   * @param severityLevel The desired severity level as a string.
+   * Valid log levels include: FATAL, WARN
+   */
+  private def setSeverity(severityLevel: String): this.type = {
+    val upperCased = severityLevel.toUpperCase()
+    require(VALID_SEVERITY_LEVELS.contains(upperCased),
+      s"Supplied severity level $upperCased did not match one of:" +
+        s" ${VALID_SEVERITY_LEVELS.mkString(",")}")
+    _severity = severityLevel
     this
   }
 

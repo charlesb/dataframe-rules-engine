@@ -22,7 +22,7 @@ object Lookups {
  */
 object Severity {
   final val fatal = "FATAL"
-  final val warning = "WARNING"
+  final val warning = "WARN"
 }
 
 object Structures {
