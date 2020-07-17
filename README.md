@@ -80,8 +80,8 @@ Rule("Unique_Skus", countDistinct("sku"), Bounds(upper = 1.0), "WARN")
 ```
 
 As of version 0.1, only `FATAL` and `WARN` are accepted. If omitted, the severity level is set to `FATAL` by default and
-the rule will fail if not valid. On the other hand, if the severity level is set to `WARN`, then the rule will never fail
-although the invalid counter will be incremented. 
+the rule will fail if not valid. On the other hand, if the severity level is set to `WARN`, then the rule will not fail
+although it will show as invalid. 
 
 ### MinMax Rules
 It's very common to build rules to validate min and max allowable values so there's a helper function
