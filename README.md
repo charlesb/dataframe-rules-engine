@@ -30,10 +30,12 @@ import com.databricks.labs.validation.utils.Structures._
 import com.databricks.labs.validation._
 ```
 
-As of version 0.1 There are three primary rule types
+As of version 0.1 There are five primary rule types
 * Boundary Rules
 * Categorical Rules (Strings and Numerical)
-* Date Rules (in progress)
+* Blank Rules
+* Date Boundary Rules
+* Adhoc Rules
 
 Rules can be composed of: 
 * simple column references `col("my_column_name")`
@@ -64,6 +66,22 @@ val specializedRules = Array(
   Rule("Unique_Skus", countDistinct("sku"), Bounds(upper = 1.0))
 )
 ```
+
+### Rule Severity Level Setting
+It is now possible to augment the rule definition with a severity level as follow:
+```scala
+Rule("Unique_Skus", countDistinct("sku"), Bounds(upper = 1.0), Severity.fatal)
+Rule("Unique_Skus", countDistinct("sku"), Bounds(upper = 1.0), Severity.warning)
+```
+The above is equivalent to:
+```scala
+Rule("Unique_Skus", countDistinct("sku"), Bounds(upper = 1.0), "FATAL")
+Rule("Unique_Skus", countDistinct("sku"), Bounds(upper = 1.0), "WARN")
+```
+
+As of version 0.1, only `FATAL` and `WARN` are accepted. If omitted, the severity level is set to `FATAL` by default and
+the rule will fail if not valid. On the other hand, if the severity level is set to `WARN`, then the rule will never fail
+although the invalid counter will be incremented. 
 
 ### MinMax Rules
 It's very common to build rules to validate min and max allowable values so there's a helper function
@@ -102,6 +120,35 @@ Rule("Valid_Regions", col("region"), Lookups.validRegions)
 )
 ```
 
+### Blank Rules
+Validate if a field value must be null or must not be null
+```scala
+val blankRules = Array(
+Rule("CheckIfIdIsBlank", col("id"), true, Severity.warning),
+Rule("CheckIfCostIsNotBlank", col("cost"), false, Severity.warning)
+)
+```
+
+### Date Boundaries Rules
+Validate if a date is comprised between 2 dates passed as a string with format `yyyy-MM-dd` or less than lower date or greater than upper date.
+Lower date is defaulted to `1970-01-01` and upper to `2999-12-31`
+```scala
+val dateBoundsRules = Array(
+Rule("CheckIfDateIsValid", col("date_received"), DateBounds("2019-01-01", "2019-12-31"), Severity.fatal)
+Rule("CheckIfDateIsValid", col("date_received"), DateBounds(lower = "2019-01-01"), Severity.fatal)
+Rule("CheckIfDateIsValid", col("date_received"), DateBounds(upper = "2019-12-31"), Severity.fatal)
+)
+```
+
+### Adhoc Rules
+Adhoc validation is a free filter clause. It can be anything that returns a boolean.
+```scala
+val dateBoundsRules = Array(
+Rule("CheckIfNameMatchesConvention", col("name").rlike("^\\w+_\\w+.\\d+$"), Severity.fatal)
+Rule("CheckIfColorIsValid", array_contains(lit(Array("yellow", "green", "red")), col("color")), Severity.fatal)
+)
+```
+
 ### Validation
 Now that you have some rules built up... it's time to build the ruleset and validate it. As mentioned above,
 the dataframe can be simple or groupBy column[s] can be passed in (as string) to perform validation at the 
@@ -122,7 +169,7 @@ val (rulesReport, passed) = RuleSet(df, Array("store_id"))
 .validate()
 ``` 
 The validation returns two items, a boolean (true/false) as to whether all rules passed or not. If a single rule
-fails the `passed` value above will return false. The `rulesReport` is a summary of which rules failed and,
+fails the `passed` value above will return false unless this rule is flagged as `WARN`. The `rulesReport` is a summary of which rules failed and,
 if the input column was not an aggregate column, the number of failed records. An image of the report is below.
 ![Alt Text](images/rulesReport.png)
 
