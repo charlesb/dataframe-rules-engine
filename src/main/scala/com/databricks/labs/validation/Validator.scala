@@ -17,7 +17,6 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
   private val dateTimeRules = ruleSet.getRules.filter(_.ruleType == RuleType.ValidateDateTime)
   private val complexRules = ruleSet.getRules.filter(_.ruleType == RuleType.ValidateComplex)
   private val blankRules = ruleSet.getRules.filter(_.ruleType == RuleType.ValidateBlank)
-  private val dataTypeRules = ruleSet.getRules.filter(_.ruleType == RuleType.ValidateDataType)
   private val dateBoundRules = ruleSet.getRules.filter(_.ruleType == RuleType.ValidateDateBounds)
   private val validAdhocRule = ruleSet.getRules.filter(_.ruleType == RuleType.ValidateAdhoc)
   private val byCols = ruleSet.getGroupBys map col
@@ -43,7 +42,6 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
       RuleType.ValidateStrings.toString -> lit(null).cast(ArrayType(StringType)).alias(RuleType.ValidateStrings.toString),
       RuleType.ValidateDateTime.toString -> lit(null).cast(LongType).alias(RuleType.ValidateDateTime.toString),
       RuleType.ValidateBlank.toString -> lit(null).cast(BooleanType).alias(RuleType.ValidateBlank.toString),
-      RuleType.ValidateDataType.toString -> lit(null).cast(StringType).alias(RuleType.ValidateDataType.toString),
       RuleType.ValidateDateBounds.toString -> lit(null).cast(ArrayType(DateType)).alias(RuleType.ValidateDateBounds.toString),
       RuleType.ValidateAdhoc.toString -> lit(null).cast(StringType).alias(RuleType.ValidateAdhoc.toString)
     )
@@ -52,8 +50,7 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
       case RuleType.ValidateNumerics => nulls(RuleType.ValidateNumerics.toString) = lit(rule.validNumerics).alias(RuleType.ValidateNumerics.toString)
       case RuleType.ValidateStrings => nulls(RuleType.ValidateStrings.toString) = lit(rule.validStrings).alias(RuleType.ValidateStrings.toString)
       case RuleType.ValidateBlank => nulls(RuleType.ValidateBlank.toString) = lit(rule.blank).alias(RuleType.ValidateBlank.toString)
-      case RuleType.ValidateDataType => nulls(RuleType.ValidateDataType.toString) = lit(rule.dataType).alias(RuleType.ValidateDataType.toString)
-      case RuleType.ValidateDateBounds => nulls(RuleType.ValidateDateBounds.toString) = array(rule.dateBounds.lower, rule.dateBounds.upper).alias(RuleType.ValidateDateBounds.toString)
+      case RuleType.ValidateDateBounds => nulls(RuleType.ValidateDateBounds.toString) = array(to_date(lit(rule.dateBounds.lower)), to_date(lit(rule.dateBounds.upper))).alias(RuleType.ValidateDateBounds.toString)
       case RuleType.ValidateAdhoc => nulls(RuleType.ValidateAdhoc.toString) = lit(rule.inputColumn.toString()).alias(RuleType.ValidateAdhoc.toString)
     }
     val validationsByType = nulls.toMap.values.toSeq
@@ -174,24 +171,8 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
           } else lit(false).alias("Failed")
           val results = Seq(col(rule.ruleName).cast(LongType).alias("Invalid_Count"), failed)
           Selects(buildOutputStruct(rule, results), first)
-        case RuleType.ValidateDataType =>
-          val invalid = if (rule.dataType == "TEXT") {
-            rule.inputColumn.rlike("[^a-zA-Z\\s\\-\\_]+") or rule.inputColumn.isNull
-          } else if (rule.dataType == "INTEGER") {
-            rule.inputColumn.rlike("[^0-9]+") or rule.inputColumn.isNull
-          } else if (rule.dataType == "DECIMAL") {
-            rule.inputColumn.rlike("[^0-9.]+") or rule.inputColumn.isNull
-          } else {
-            throw new Exception(s"Data type validation rule expect 'TEXT', 'INTEGER' or 'DECIMAL' but '${rule.dataType}' given")
-          }
-          val first = sum(when(invalid, 1).otherwise(0)).alias(rule.ruleName)
-          val failed = if (rule.severity == Severity.fatal) {
-            when(col(rule.ruleName) > 0, true).otherwise(false).alias("Failed")
-          } else lit(false).alias("Failed")
-          val results = Seq(col(rule.ruleName).cast(LongType).alias("Invalid_Count"), failed)
-          Selects(buildOutputStruct(rule, results), first)
         case RuleType.ValidateDateBounds =>
-          val invalid = to_date(rule.inputColumn.cast(StringType), "yyyyMMdd").isNull || (to_date(rule.inputColumn.cast(StringType), "yyyyMMdd") < rule.dateBounds.lower || to_date(rule.inputColumn.cast(StringType), "yyyyMMdd") > rule.dateBounds.upper)
+          val invalid = rule.inputColumn.isNull || to_date(rule.inputColumn) < to_date(lit(rule.dateBounds.lower)) || rule.inputColumn > to_date(lit(rule.dateBounds.upper))
           val first = sum(when(invalid, 1).otherwise(0)).alias(rule.ruleName)
           val failed = if (rule.severity == Severity.fatal) {
             when(col(rule.ruleName) > 0, true).otherwise(false).alias("Failed")
@@ -232,7 +213,7 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
   private[validation] def validate: (DataFrame, Boolean) = {
 
     //    val selects = buildBaseSelects(boundaryRules)
-    val selects = buildBaseSelects(boundaryRules) ++ buildBaseSelects(categoricalRules) ++ buildBaseSelects(blankRules) ++ buildBaseSelects(dataTypeRules) ++ buildBaseSelects(dateBoundRules) ++ buildBaseSelects(validAdhocRule)
+    val selects = buildBaseSelects(boundaryRules) ++ buildBaseSelects(categoricalRules) ++ buildBaseSelects(blankRules) ++ buildBaseSelects(dateBoundRules) ++ buildBaseSelects(validAdhocRule)
     val fullOutput = explode(array(selects.map(_.output): _*)).alias("Validations")
     val summaryDF = if (ruleSet.getGroupBys.isEmpty) {
       ruleSet.getDf
