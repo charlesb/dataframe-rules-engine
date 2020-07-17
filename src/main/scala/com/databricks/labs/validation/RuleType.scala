@@ -10,7 +10,6 @@ object RuleType extends Enumeration {
   val ValidateDateTime = Value("validDateTime")
   val ValidateComplex = Value("complex")
   val ValidateBlank = Value("blank")
-  val ValidateDataType = Value("dataType")
   val ValidateDateBounds = Value("dateBounds")
   val ValidateAdhoc = Value("adhoc")
 }
