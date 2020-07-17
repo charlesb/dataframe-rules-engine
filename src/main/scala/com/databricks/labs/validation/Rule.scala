@@ -24,9 +24,9 @@ class Rule {
   private var _isAgg: Boolean = _
   private var _severity: String = _
   private var _blank: Boolean = _
-  private var _dataType: String = _
   private var _dateBounds: DateBounds = _
   private val VALID_SEVERITY_LEVELS = Set("FATAL", "WARN")
+  private val VALID_DATA_TYPES = Set("TEXT", "INTEGER", "DECIMAL")
 
   private def setRuleName(value: String): this.type = {
     _ruleName = value
@@ -71,11 +71,6 @@ class Rule {
 
   private def setBlank(value: Boolean): this.type = {
     _blank = value
-    this
-  }
-
-  private def setDataType(value: String): this.type = {
-    _dataType = value
     this
   }
 
@@ -139,8 +134,6 @@ class Rule {
   def severity: String = _severity
 
   def blank: Boolean = _blank
-
-  def dataType: String = _dataType
 
   def dateBounds: DateBounds = _dateBounds
 
@@ -245,22 +238,6 @@ object Rule {
       .setBlank(blank)
       .setSeverity(severity)
       .setRuleType(RuleType.ValidateBlank)
-      .setIsAgg
-  }
-
-  def apply(
-             ruleName: String,
-             column: Column,
-             dataType: String,
-             severity: String
-           ): Rule = {
-
-    new Rule()
-      .setRuleName(ruleName)
-      .setColumn(column)
-      .setDataType(dataType)
-      .setSeverity(severity)
-      .setRuleType(RuleType.ValidateDataType)
       .setIsAgg
   }
 
