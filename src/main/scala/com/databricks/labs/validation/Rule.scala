@@ -86,7 +86,7 @@ class Rule {
   }
 
   private[validation] def setIsAgg: this.type = {
-    _isAgg = inputColumn.expr.prettyName == "aggregateexpression"
+    _isAgg = inputColumn.expr.prettyName == "aggregateexpression" || inputColumn.expr.prettyName == "count"
     this
   }
 

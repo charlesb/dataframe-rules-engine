@@ -1,8 +1,8 @@
 package com.databricks.labs.validation
 
-import com.databricks.labs.validation.utils.SparkSessionWrapper
+import com.databricks.labs.validation.utils.{Severity, SparkSessionWrapper}
 import com.databricks.labs.validation.utils.Structures.{Bounds, MinMaxRuleDef}
-import org.apache.log4j.{Level, Logger}
+import org.apache.log4j.Logger
 import org.apache.spark.sql.{Column, DataFrame}
 import org.apache.spark.sql.functions.{max, min}
 
@@ -77,12 +77,33 @@ class RuleSet extends SparkSessionWrapper {
   def addMinMaxRules(ruleName: String,
                      inputColumn: Column,
                      boundaries: Bounds,
-                     level: String,
                      by: Column*
                     ): this.type = {
     val rules = Array(
-      Rule(s"${ruleName}_min", min(inputColumn), boundaries, level),
-      Rule(s"${ruleName}_max", max(inputColumn), boundaries, level)
+      Rule(s"${ruleName}_min", min(inputColumn), boundaries, Severity.fatal),
+      Rule(s"${ruleName}_max", max(inputColumn), boundaries, Severity.fatal)
+    )
+    add(rules)
+  }
+
+  /**
+   * Builder pattern used to add individual MinMax rule sets after the RuleSet has been instantiated
+   * @param ruleName name of rule
+   * @param inputColumn input column (base or calculated)
+   * @param boundaries lower/upper boundaries as defined by Bounds
+   * @param severityLevel FATAL or WARN
+   * @param by groupBy cols
+   * @return RuleSet
+   */
+  def addMinMaxRules(ruleName: String,
+                     inputColumn: Column,
+                     boundaries: Bounds,
+                     severityLevel: String,
+                     by: Column*
+                    ): this.type = {
+    val rules = Array(
+      Rule(s"${ruleName}_min", min(inputColumn), boundaries, severityLevel),
+      Rule(s"${ruleName}_max", max(inputColumn), boundaries, severityLevel)
     )
     add(rules)
   }

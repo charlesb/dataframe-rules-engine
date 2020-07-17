@@ -212,7 +212,6 @@ class Validator(ruleSet: RuleSet, detailLvl: Int) extends SparkSessionWrapper {
 
   private[validation] def validate: (DataFrame, Boolean) = {
 
-    //    val selects = buildBaseSelects(boundaryRules)
     val selects = buildBaseSelects(boundaryRules) ++ buildBaseSelects(categoricalRules) ++ buildBaseSelects(blankRules) ++ buildBaseSelects(dateBoundRules) ++ buildBaseSelects(validAdhocRule)
     val fullOutput = explode(array(selects.map(_.output): _*)).alias("Validations")
     val summaryDF = if (ruleSet.getGroupBys.isEmpty) {
