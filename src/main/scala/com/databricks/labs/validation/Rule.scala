@@ -2,6 +2,7 @@ package com.databricks.labs.validation
 
 import java.util.UUID
 
+import com.databricks.labs.validation.utils.Severity
 import com.databricks.labs.validation.utils.Structures.{Bounds, DateBounds}
 import org.apache.spark.sql.Column
 
@@ -164,6 +165,21 @@ object Rule {
   def apply(
              ruleName: String,
              column: Column,
+             boundaries: Bounds
+           ): Rule = {
+
+    new Rule()
+      .setRuleName(ruleName)
+      .setColumn(column)
+      .setBoundaries(boundaries)
+      .setSeverity(Severity.fatal)
+      .setRuleType(RuleType.ValidateBounds)
+      .setIsAgg
+  }
+
+  def apply(
+             ruleName: String,
+             column: Column,
              validNumerics: Array[Double],
              severity: String
            ): Rule = {
@@ -173,6 +189,21 @@ object Rule {
       .setColumn(column)
       .setValidNumerics(validNumerics)
       .setSeverity(severity)
+      .setRuleType(RuleType.ValidateNumerics)
+      .setIsAgg
+  }
+
+  def apply(
+             ruleName: String,
+             column: Column,
+             validNumerics: Array[Double]
+           ): Rule = {
+
+    new Rule()
+      .setRuleName(ruleName)
+      .setColumn(column)
+      .setValidNumerics(validNumerics)
+      .setSeverity(Severity.fatal)
       .setRuleType(RuleType.ValidateNumerics)
       .setIsAgg
   }
@@ -196,6 +227,21 @@ object Rule {
   def apply(
              ruleName: String,
              column: Column,
+             validNumerics: Array[Long]
+           ): Rule = {
+
+    new Rule()
+      .setRuleName(ruleName)
+      .setColumn(column)
+      .setValidNumerics(validNumerics.map(_.toString.toDouble))
+      .setSeverity(Severity.fatal)
+      .setRuleType(RuleType.ValidateNumerics)
+      .setIsAgg
+  }
+
+  def apply(
+             ruleName: String,
+             column: Column,
              validNumerics: Array[Int],
              severity: String
            ): Rule = {
@@ -205,6 +251,21 @@ object Rule {
       .setColumn(column)
       .setValidNumerics(validNumerics.map(_.toString.toDouble))
       .setSeverity(severity)
+      .setRuleType(RuleType.ValidateNumerics)
+      .setIsAgg
+  }
+
+  def apply(
+             ruleName: String,
+             column: Column,
+             validNumerics: Array[Int]
+           ): Rule = {
+
+    new Rule()
+      .setRuleName(ruleName)
+      .setColumn(column)
+      .setValidNumerics(validNumerics.map(_.toString.toDouble))
+      .setSeverity(Severity.fatal)
       .setRuleType(RuleType.ValidateNumerics)
       .setIsAgg
   }
@@ -228,6 +289,21 @@ object Rule {
   def apply(
              ruleName: String,
              column: Column,
+             validStrings: Array[String]
+           ): Rule = {
+
+    new Rule()
+      .setRuleName(ruleName)
+      .setColumn(column)
+      .setValidStrings(validStrings)
+      .setSeverity(Severity.fatal)
+      .setRuleType(RuleType.ValidateStrings)
+      .setIsAgg
+  }
+
+  def apply(
+             ruleName: String,
+             column: Column,
              blank: Boolean,
              severity: String
            ): Rule = {
@@ -237,6 +313,21 @@ object Rule {
       .setColumn(column)
       .setBlank(blank)
       .setSeverity(severity)
+      .setRuleType(RuleType.ValidateBlank)
+      .setIsAgg
+  }
+
+  def apply(
+             ruleName: String,
+             column: Column,
+             blank: Boolean
+           ): Rule = {
+
+    new Rule()
+      .setRuleName(ruleName)
+      .setColumn(column)
+      .setBlank(blank)
+      .setSeverity(Severity.fatal)
       .setRuleType(RuleType.ValidateBlank)
       .setIsAgg
   }
@@ -260,6 +351,21 @@ object Rule {
   def apply(
              ruleName: String,
              column: Column,
+             dateBounds: DateBounds
+           ): Rule = {
+
+    new Rule()
+      .setRuleName(ruleName)
+      .setColumn(column)
+      .setDateBoundaries(dateBounds)
+      .setSeverity(Severity.fatal)
+      .setRuleType(RuleType.ValidateDateBounds)
+      .setIsAgg
+  }
+
+  def apply(
+             ruleName: String,
+             column: Column,
              severity: String
            ): Rule = {
 
@@ -267,6 +373,19 @@ object Rule {
       .setRuleName(ruleName)
       .setColumn(column)
       .setSeverity(severity)
+      .setRuleType(RuleType.ValidateAdhoc)
+      .setIsAgg
+  }
+
+  def apply(
+             ruleName: String,
+             column: Column
+           ): Rule = {
+
+    new Rule()
+      .setRuleName(ruleName)
+      .setColumn(column)
+      .setSeverity(Severity.fatal)
       .setRuleType(RuleType.ValidateAdhoc)
       .setIsAgg
   }

@@ -28,8 +28,27 @@ object Structures {
 
   case class Bounds(lower: Double = Double.NegativeInfinity, upper: Double = Double.PositiveInfinity)
 
-  case class MinMaxRuleDef(ruleName: String, column: Column, bounds: Bounds, level: String, by: Column*)
+  case class MinMaxRuleDef(ruleName: String, column: Column, bounds: Bounds, severityLevel: String, by: Column*)
 
   case class DateBounds(lower: String = "1970-01-01", upper: String = "2999-12-31")
+
+  object MinMaxRuleDef {
+    def apply(
+               ruleName: String,
+               column: Column,
+               bounds: Bounds,
+             ): MinMaxRuleDef = {
+      new MinMaxRuleDef(ruleName, column, bounds, Severity.fatal)
+    }
+
+    def apply(
+               ruleName: String,
+               column: Column,
+               bounds: Bounds,
+               by: Column
+             ): MinMaxRuleDef = {
+      new MinMaxRuleDef(ruleName, column, bounds, Severity.fatal, by)
+    }
+  }
 
 }

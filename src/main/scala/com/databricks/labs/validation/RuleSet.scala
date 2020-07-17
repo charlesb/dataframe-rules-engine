@@ -59,8 +59,8 @@ class RuleSet extends SparkSessionWrapper {
 
     add(minMaxRuleDefs.flatMap(ruleDef => {
       Seq(
-        Rule(s"${ruleDef.ruleName}_min", min(ruleDef.column), ruleDef.bounds, ruleDef.level),
-        Rule(s"${ruleDef.ruleName}_max", max(ruleDef.column), ruleDef.bounds, ruleDef.level)
+        Rule(s"${ruleDef.ruleName}_min", min(ruleDef.column), ruleDef.bounds, ruleDef.severityLevel),
+        Rule(s"${ruleDef.ruleName}_max", max(ruleDef.column), ruleDef.bounds, ruleDef.severityLevel)
       )
     }).toArray)
     this
@@ -185,8 +185,8 @@ object RuleSet {
 
     minMaxRuleDefs.flatMap(ruleDef => {
       Seq(
-        Rule(s"${ruleDef.ruleName}_min", min(ruleDef.column), ruleDef.bounds, ruleDef.level),
-        Rule(s"${ruleDef.ruleName}_max", max(ruleDef.column), ruleDef.bounds, ruleDef.level)
+        Rule(s"${ruleDef.ruleName}_min", min(ruleDef.column), ruleDef.bounds, ruleDef.severityLevel),
+        Rule(s"${ruleDef.ruleName}_max", max(ruleDef.column), ruleDef.bounds, ruleDef.severityLevel)
       )
     }).toArray
   }
